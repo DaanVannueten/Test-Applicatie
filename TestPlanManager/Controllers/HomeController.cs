@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TestPlanManager.Models;
@@ -15,35 +16,79 @@ public class HomeController : Controller
 
     public async Task<IActionResult> Index()
     {
+        // load categories and tests so we can do accurate computations
         var categories = await _ctx.TestCategories
             .Include(tc => tc.Sprint)
-            .Select(tc => new Models.TestCategoryDto
-            {
-                TestCategoryId = tc.TestCategoryId,
-                Name = tc.Name,
-                Description = tc.Description,
-                BuildNr = tc.Sprint.BuildNr,
-                Department = tc.Department,
-                Passed = tc.Passed,
-                Failed = tc.Failed,
-                Blocked = tc.Blocked,
-                OutOfScope = tc.OutOfScope,
-                TotalTest = tc.TotalTest,
-                PercentagePassed = tc.PercentagePassed
-            })
+            .Include(tc => tc.Tests)
             .ToListAsync();
 
-        return View(new Models.DashboardViewModel { Categories = categories });
+        // recalc the aggregates on each category entity
+        foreach (var cat in categories)
+        {
+            cat.Recalculate();
+        }
+
+        // metric calculations based on the actual test rows
+        var tests = categories.SelectMany(tc => tc.Tests.Select(t => new { t, tc.TestDate })).ToList();
+        var totalTestCases = tests.Count;
+
+        var today = DateTime.UtcNow.Date;
+        var testsExecutedToday = categories
+            .Where(tc => tc.TestDate.HasValue && tc.TestDate.Value.Date == today)
+            .Sum(tc => tc.Tests.Count(t => t.ExecutionStatus != Models.ExecutionStatus.NotRun));
+
+        var passed = tests.Count(x => x.t.ExecutionStatus == Models.ExecutionStatus.Passed);
+        var openOrFailed = tests.Count(x => x.t.ExecutionStatus == Models.ExecutionStatus.Failed ||
+                                           x.t.ExecutionStatus == Models.ExecutionStatus.Blocked);
+
+        var overallPassRate = totalTestCases == 0 ? 0f : ((float)passed / totalTestCases) * 100;
+
+        var dtos = categories.Select(tc => new Models.TestCategoryDto
+        {
+            TestCategoryId = tc.TestCategoryId,
+            Name = tc.Name,
+            Description = tc.Description,
+            BuildNr = tc.Sprint.BuildNr,
+            Department = tc.Department,
+
+            Passed = tc.Passed,
+            Failed = tc.Failed,
+            Blocked = tc.Blocked,
+            OutOfScope = tc.OutOfScope,
+            TotalTest = tc.TotalTest,
+            PercentagePassed = tc.PercentagePassed
+        }).ToList();
+
+        var vm = new Models.DashboardViewModel
+        {
+            Categories = dtos,
+            TotalTestCases = totalTestCases,
+            TestsExecutedToday = testsExecutedToday,
+            OverallPassRate = overallPassRate,
+            OpenOrFailed = openOrFailed
+        };
+
+        return View(vm);
     }
 
-    public IActionResult Privacy()
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResetAllTests()
     {
-        return View();
-    }
+        // set every test to NotRun and clear date
+        var allTests = await _ctx.Tests.ToListAsync();
+        foreach (var t in allTests)
+        {
+            t.ExecutionStatus = Models.ExecutionStatus.NotRun;
+        }
 
-    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-    public IActionResult Error()
-    {
-        return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        var allCategories = await _ctx.TestCategories.ToListAsync();
+        foreach (var category in allCategories)
+        {
+            category.TestDate = null;
+        }
+
+        await _ctx.SaveChangesAsync();
+        return RedirectToAction(nameof(Index));
     }
 }

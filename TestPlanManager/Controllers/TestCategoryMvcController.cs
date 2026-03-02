@@ -41,12 +41,30 @@ namespace TestPlanManager.Controllers
             var test = await _ctx.Tests.FindAsync(TestId);
             if (test == null) return NotFound();
 
+            var category = await _ctx.TestCategories
+                .Include(tc => tc.Tests)
+                .FirstOrDefaultAsync(tc => tc.TestCategoryId == TestCategoryId);
+            if (category == null) return NotFound();
+
             test.Name = Name;
             test.ScopeStatus = ScopeStatus;
             test.ExecutionStatus = ExecutionStatus;
             test.Production = Production ?? "";
             test.Comments = Comments ?? "";
             test.VideoURL = VideoURL ?? "";
+
+            if (ExecutionStatus != Models.ExecutionStatus.NotRun)
+            {
+                category.TestDate = DateTime.UtcNow;
+            }
+            else
+            {
+                var hasAnyExecuted = category.Tests
+                    .Where(t => t.TestId != TestId)
+                    .Any(t => t.ExecutionStatus != Models.ExecutionStatus.NotRun);
+
+                category.TestDate = hasAnyExecuted ? category.TestDate : null;
+            }
 
             _ctx.Tests.Update(test);
             await _ctx.SaveChangesAsync();
@@ -58,7 +76,7 @@ namespace TestPlanManager.Controllers
         {
             var category = await _ctx.TestCategories.FindAsync(testCategoryId);
             if (category == null) return NotFound();
-            
+
             var test = new Test { TestCategoryId = testCategoryId };
             return View(test);
         }
@@ -77,7 +95,7 @@ namespace TestPlanManager.Controllers
             model.Production = model.Production ?? "";
             model.Comments = model.Comments ?? "";
             model.VideoURL = model.VideoURL ?? "";
-            
+
             _ctx.Tests.Add(model);
             await _ctx.SaveChangesAsync();
             return RedirectToAction("Details", new { id = model.TestCategoryId });

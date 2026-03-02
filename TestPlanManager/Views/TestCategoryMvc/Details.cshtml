@@ -4,93 +4,277 @@
         ViewData["Title"] = Model.Name;
 }
 
-<a href="@Url.Action("Index","Home")" class="btn btn-link mb-3"><i class="bi bi-chevron-left"></i> Back to Dashboard</a>
+<div class="container-fluid px-4 py-5">
+    <div class="mb-4">
+        <a href="@Url.Action("Index","Home")" class="btn btn-link">
+            <i class="bi bi-chevron-left me-1"></i> Back to Dashboard
+        </a>
+    </div>
 
-<div class="card mb-4">
-    <div class="card-body">
-        <div class="d-flex justify-content-between w-100 align-items-start">
-            <div>
-                <h2 class="mb-1">@Model.Name</h2>
-                @if(!string.IsNullOrEmpty(Model.Description))
-                {
-                    <p class="description">@Model.Description</p>
-                }
-                <div class="row mt-3">
-                    <div class="col-md-4">
-                        <span class="icon bi bi-calendar"></span>
-                        <small class="text-muted">Release</small>
-                        <div><strong>Release @Model.Sprint?.BuildNr</strong></div>
+    <!-- Header Card -->
+    <div class="card mb-4">
+        <div class="card-header bg-gradient">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h2 class="mb-1"><i class="bi bi-folder2-open me-2"></i>@Model.Name</h2>
+                    @if(!string.IsNullOrEmpty(Model.Description))
+                    {
+                        <p class="text-muted mb-3">@Model.Description</p>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row mb-4 g-4">
+                <div class="col-md-4">
+                    <div class="metric-card">
+                        <div class="metric-icon bg-info">
+                            <i class="bi bi-calendar3"></i>
+                        </div>
+                        <div class="metric-content">
+                            <small class="text-muted">Release</small>
+                            <div class="fw-bold">Release @Model.Sprint?.BuildNr</div>
+                        </div>
                     </div>
-                    <div class="col-md-4">
-                        <span class="icon bi bi-person"></span>
-                        <small class="text-muted">Owner</small>
-                        <div><strong>@Model.Department</strong></div>
+                </div>
+                <div class="col-md-4">
+                    <div class="metric-card">
+                        <div class="metric-icon bg-primary">
+                            <i class="bi bi-building"></i>
+                        </div>
+                        <div class="metric-content">
+                            <small class="text-muted">Department</small>
+                            <div class="fw-bold">@Model.Department</div>
+                        </div>
                     </div>
-                    <div class="col-md-4">
-                        <span class="icon bi bi-hourglass-split"></span>
-                        <small class="text-muted">Status</small>
-                        <div><strong>@Model.Status</strong></div>
+                </div>
+                <div class="col-md-4">
+                    <div class="metric-card">
+                        <div class="metric-icon bg-warning">
+                            <i class="bi bi-hourglass-split"></i>
+                        </div>
+                        <div class="metric-content">
+                            <small class="text-muted">Status</small>
+                            <div class="fw-bold">@Model.Status</div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="ms-3">
-                <button class="btn btn-primary btn-lg">Run Tests</button>
+
+            <!-- Progress Section -->
+            <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0"><i class="bi bi-graph-up me-2"></i>Test Progress</h6>
+                    <span class="badge bg-primary">@Model.PercentagePassed.ToString("0.##")% Complete</span>
+                </div>
+                <div class="progress" style="height: 1.5rem;">
+                    <div class="progress-bar bg-gradient" role="progressbar" style="width:@Model.PercentagePassed%; background: #3b82f6 !important;" aria-valuenow="@Model.PercentagePassed" aria-valuemin="0" aria-valuemax="100">
+                        <span class="ms-2">@Model.PercentagePassed.ToString("0.##")%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Statistics -->
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <div class="stat-box stat-passed">
+                        <i class="bi bi-check-circle-fill"></i>
+                        <div class="stat-number">@Model.Passed</div>
+                        <div class="stat-label">Passed</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-box stat-failed">
+                        <i class="bi bi-x-circle-fill"></i>
+                        <div class="stat-number">@Model.Failed</div>
+                        <div class="stat-label">Failed</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-box stat-blocked">
+                        <i class="bi bi-exclamation-circle-fill"></i>
+                        <div class="stat-number">@Model.Blocked</div>
+                        <div class="stat-label">Blocked</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-box stat-notstarted">
+                        <i class="bi bi-clock-fill"></i>
+                        <div class="stat-number">@(Model.TotalTest - Model.Passed - Model.Failed - Model.Blocked - Model.OutOfScope)</div>
+                        <div class="stat-label">Not Started</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    <div class="card-footer">
-        <div class="row align-items-center">
-            <div class="col-md-9">
-                <div class="progress" style="height:1.25rem;">
-                    <div class="progress-bar bg-primary" role="progressbar" style="width:@Model.PercentagePassed%;" aria-valuenow="@Model.PercentagePassed" aria-valuemin="0" aria-valuemax="100">
-                        &nbsp;
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3 text-end">
-                <strong>@Model.PercentagePassed.ToString("0.##")% </strong>
-            </div>
+
+    <!-- Tests Table Card -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-list-check me-2"></i>Test Cases (@Model.Tests.Count)</h5>
+            <a href="@Url.Action("CreateTest", "TestCategoryMvc", new { testCategoryId = Model.TestCategoryId })" class="btn btn-sm btn-success">
+                <i class="bi bi-plus-circle me-1"></i> Add Test
+            </a>
         </div>
-        <div class="row mt-3 text-muted">
-            <div class="col-md-3"><i class="bi bi-check-circle-fill text-success"></i> <strong class="ms-1">@Model.Passed</strong> Passed</div>
-            <div class="col-md-3"><i class="bi bi-x-circle-fill text-danger"></i> <strong class="ms-1">@Model.Failed</strong> Failed</div>
-            <div class="col-md-3"><i class="bi bi-exclamation-circle-fill text-warning"></i> <strong class="ms-1">@Model.Blocked</strong> Blocked</div>
-            <div class="col-md-3"><i class="bi bi-clock-fill text-secondary"></i> <strong class="ms-1">@(Model.TotalTest - Model.Passed - Model.Failed - Model.Blocked - Model.OutOfScope)</strong> Not Started</div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width:120px">TEST ID</th>
+                            <th>TEST TITLE</th>
+                            <th style="width:180px">MODULE</th>
+                            <th style="width:140px">TYPE</th>
+                            <th style="width:140px">STATUS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach(var t in Model.Tests)
+                        {
+                            <tr onclick="window.location='@Url.Action("EditTest", "TestCategoryMvc", new { id = t.TestId })'" style="cursor:pointer;" class="table-row-hover">
+                                <td><a class="link-primary fw-bold" href="@Url.Action("EditTest", "TestCategoryMvc", new { id = t.TestId })">@($"TC-{t.TestId:D3}")</a></td>
+                                <td><span class="fw-500">@t.Name</span></td>
+                                <td><small class="text-muted">@Model.Department</small></td>
+                                <td><span class="badge @GetBadgeClass(t.ScopeStatus)">@t.ScopeStatus</span></td>
+                                <td><span class="badge @GetBadgeClass(t.ExecutionStatus)">@t.ExecutionStatus</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
 
-<div class="card">  <div class="card-header d-flex justify-content-between align-items-center">
-    <h5 class="mb-0">Test Cases (@Model.Tests.Count)</h5>
-    <a href="@Url.Action("CreateTest", "TestCategoryMvc", new { testCategoryId = Model.TestCategoryId })" class="btn btn-sm btn-success">
-      <i class="bi bi-plus-circle"></i> Add Test
-    </a>
-  </div>    <div class="card-body p-0">
-        <table class="table table-hover mb-0">
-            <thead class="table-light">
-                <tr>
-                    <th style="width:120px">TEST ID</th>
-                    <th>TEST TITLE</th>
-                    <th style="width:180px">MODULE</th>
-                    <th style="width:140px">TYPE</th>
-                    <th style="width:140px">STATUS</th>
-                </tr>
-            </thead>
-            <tbody>
-            @foreach(var t in Model.Tests)
-            {
-                <tr onclick="window.location='@Url.Action("EditTest", "TestCategoryMvc", new { id = t.TestId })'" style="cursor:pointer;">
-                    <td><a class="link-primary" href="@Url.Action("EditTest", "TestCategoryMvc", new { id = t.TestId })">@($"TC-{t.TestId:D3}")</a></td>
-                    <td>@t.Name</td>
-                    <td>@Model.Department</td>
-                    <td><span class="badge @GetBadgeClass(t.ScopeStatus)">@t.ScopeStatus</span></td>
-                    <td><span class="badge @GetBadgeClass(t.ExecutionStatus)">@t.ExecutionStatus</span></td>
-                </tr>
-            }
-            </tbody>
-        </table>
-    </div>
-</div>
+<style>
+    .metric-card {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        background: #f8fafc;
+        border-radius: 0.75rem;
+        border: 1px solid #e2e8f0;
+    }
+
+    .metric-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.5rem;
+    }
+
+    .metric-icon.bg-info {
+        background: #e0f2fe !important;
+        color: #3b82f6 !important;
+    }
+
+    .metric-icon.bg-primary {
+        background: #e0f2fe !important;
+        color: #3b82f6 !important;
+    }
+
+    .metric-icon.bg-warning {
+        background: #fef3c7 !important;
+        color: #f59e0b !important;
+    }
+
+    .stat-box {
+        text-align: center;
+        padding: 1.5rem;
+        border-radius: 0.75rem;
+        transition: all 0.3s ease;
+    }
+
+    .stat-box i {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .stat-passed {
+        background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+        border-left: 4px solid #10b981;
+    }
+
+    .stat-passed i {
+        color: #10b981;
+    }
+
+    .stat-failed {
+        background: linear-gradient(135deg, #fef2f2, #fee2e2);
+        border-left: 4px solid #ef4444;
+    }
+
+    .stat-failed i {
+        color: #ef4444;
+    }
+
+    .stat-blocked {
+        background: linear-gradient(135deg, #fffbeb, #fef3c7);
+        border-left: 4px solid #f59e0b;
+    }
+
+    .stat-blocked i {
+        color: #f59e0b;
+    }
+
+    .stat-notstarted {
+        background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+        border-left: 4px solid #6b7280;
+    }
+
+    .stat-notstarted i {
+        color: #6b7280;
+    }
+
+    .stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0.5rem 0;
+    }
+
+    .stat-passed .stat-number {
+        color: #10b981;
+    }
+
+    .stat-failed .stat-number {
+        color: #ef4444;
+    }
+
+    .stat-blocked .stat-number {
+        color: #f59e0b;
+    }
+
+    .stat-notstarted .stat-number {
+        color: #6b7280;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: #64748b;
+        font-weight: 500;
+    }
+
+    .card-header.bg-gradient {
+        background: #f8fafc !important;
+        color: #1e293b;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    .table-row-hover:hover {
+        background-color: #f8fafc;
+        transition: background-color 0.2s ease;
+    }
+
+    .fw-500 {
+        font-weight: 500;
+    }
+</style>
 
 @functions {
         private string GetBadgeClass(Enum status) =>

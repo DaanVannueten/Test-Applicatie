@@ -4,53 +4,79 @@
     ViewData["Title"] = "Create New Test";
 }
 
-<div class="container mt-4">
-    <a href="@Url.Action("Details", "TestCategoryMvc", new { id = Model.TestCategoryId })" class="btn btn-link mb-3">
-        <i class="bi bi-chevron-left"></i> Back to Category
-    </a>
+<div class="container-fluid px-4 py-5">
+    <div class="row mb-4">
+        <div class="col-12">
+            <a href="@Url.Action("Details", "TestCategoryMvc", new { id = Model.TestCategoryId })" class="btn btn-link">
+                <i class="bi bi-chevron-left me-1"></i> Back to Category
+            </a>
+        </div>
+    </div>
 
-    <div class="card">
-        <div class="card-body">
-            <h3 class="card-title">Create New Test</h3>
-
-            <form asp-action="CreateTest" asp-controller="TestCategoryMvc" method="post">
-                <input type="hidden" asp-for="TestCategoryId" />
-
-                <div class="mb-3">
-                    <label asp-for="Name" class="form-label">Test Name *</label>
-                    <input asp-for="Name" class="form-control" placeholder="e.g., Test the cash drawer" required />
-                    <span asp-validation-for="Name" class="text-danger"></span>
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Create New Test</h5>
+                    </div>
                 </div>
+                <div class="card-body">
+                    <form asp-action="CreateTest" asp-controller="TestCategoryMvc" method="post">
+                        <input type="hidden" asp-for="TestCategoryId" />
 
-                <div class="mb-3">
-                    <label asp-for="ScopeStatus" class="form-label">Scope Status</label>
-                    <select asp-for="ScopeStatus" class="form-select">
-                        <option value="InScope">In Scope</option>
-                        <option value="OutOfScope">Out of Scope</option>
-                    </select>
-                </div>
+                        <div class="mb-4">
+                            <label asp-for="Name" class="form-label">
+                                <i class="bi bi-type me-2 text-primary"></i>Name <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="Name" class="form-control form-control-lg" placeholder="Enter test name" required />
+                            <span asp-validation-for="Name" class="text-danger d-block mt-1"></span>
+                        </div>
 
-                <div class="mb-3">
-                    <label asp-for="Description" class="form-label">Description *</label>
-                    <textarea asp-for="Description" class="form-control" rows="3" placeholder="Describe what this test does" required></textarea>
-                    <span asp-validation-for="Description" class="text-danger"></span>
-                </div>
+                        <div class="mb-4">
+                            <label asp-for="Description" class="form-label">
+                                <i class="bi bi-file-text me-2 text-primary"></i>Description <span class="text-danger">*</span>
+                            </label>
+                            <textarea asp-for="Description" class="form-control" rows="4" placeholder="Describe what this test does" required></textarea>
+                            <span asp-validation-for="Description" class="text-danger d-block mt-1"></span>
+                        </div>
 
-                <div class="mb-3">
-                    <label asp-for="Comments" class="form-label">Comments</label>
-                    <textarea asp-for="Comments" class="form-control" rows="2" placeholder="Optional notes about this test"></textarea>
-                </div>
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label asp-for="ScopeStatus" class="form-label"><i class="bi bi-bullseye me-2 text-primary"></i>Scope Status</label>
+                                <select asp-for="ScopeStatus" class="form-select form-select-lg">
+                                    <option value="InScope">✓ In Scope</option>
+                                    <option value="OutOfScope">✗ Out of Scope</option>
+                                </select>
+                            </div>
+                        </div>
 
-                <div class="mb-3">
-                    <label asp-for="VideoURL" class="form-label">Video URL</label>
-                    <input asp-for="VideoURL" class="form-control" type="url" placeholder="https://example.com/video" />
-                </div>
+                        <div class="mb-4">
+                            <label asp-for="Comments" class="form-label"><i class="bi bi-chat-dots me-2 text-primary"></i>Comments</label>
+                            <textarea asp-for="Comments" class="form-control" rows="2" placeholder="Optional notes about this test"></textarea>
+                        </div>
 
-                <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-success">Create Test</button>
-                    <a href="@Url.Action("Details", "TestCategoryMvc", new { id = Model.TestCategoryId })" class="btn btn-secondary">Cancel</a>
+                        <div class="mb-4">
+                            <label asp-for="VideoURL" class="form-label"><i class="bi bi-film me-2 text-primary"></i>Video URL</label>
+                            <input asp-for="VideoURL" class="form-control" type="url" placeholder="https://example.com/video" />
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Note:</strong> Execution Status will be set to "Not Run" by default. You can change it later after creating the test.
+                        </div>
+
+                        <div class="d-flex gap-2 pt-3 border-top">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="bi bi-check-circle me-1"></i> Create Test
+                            </button>
+                            <a href="@Url.Action("Details", "TestCategoryMvc", new { id = Model.TestCategoryId })" class="btn btn-secondary btn-lg">
+                                <i class="bi bi-x-circle me-1"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
                 </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>

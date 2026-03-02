@@ -5,7 +5,7 @@ namespace TestPlanManager.Models
     public class TestCategoryDto
     {
         public int TestCategoryId { get; set; }
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public int BuildNr { get; set; }
         public Department Department { get; set; }
@@ -28,6 +28,12 @@ namespace TestPlanManager.Models
 
     public class DashboardViewModel
     {
-        public IEnumerable<TestCategoryDto> Categories { get; set; }
+        public IEnumerable<TestCategoryDto> Categories { get; set; } = new List<TestCategoryDto>();
+
+        // additional dashboard metrics derived from actual test rows
+        public int TotalTestCases { get; set; }
+        public int TestsExecutedToday { get; set; }
+        public float OverallPassRate { get; set; }
+        public int OpenOrFailed { get; set; }
     }
 }

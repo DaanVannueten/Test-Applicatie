@@ -33,10 +33,29 @@ namespace TestPlanManager.Controllers
             var t = await _ctx.Tests.FindAsync(id);
             if (t == null) return NotFound();
 
+            var category = await _ctx.TestCategories
+                .Include(tc => tc.Tests)
+                .FirstOrDefaultAsync(tc => tc.TestCategoryId == t.TestCategoryId);
+            if (category == null) return NotFound();
+
             t.ExecutionStatus = dto.ExecutionStatus;
             t.Production = dto.Production;
             t.Comments = dto.Comments;
             t.VideoURL = dto.VideoURL;
+
+            if (dto.ExecutionStatus != ExecutionStatus.NotRun)
+            {
+                category.TestDate = DateTime.UtcNow;
+            }
+            else
+            {
+                var hasAnyExecuted = category.Tests
+                    .Where(test => test.TestId != t.TestId)
+                    .Any(test => test.ExecutionStatus != ExecutionStatus.NotRun);
+
+                category.TestDate = hasAnyExecuted ? category.TestDate : null;
+            }
+
             await _ctx.SaveChangesAsync();
             return NoContent();
         }
@@ -44,9 +63,9 @@ namespace TestPlanManager.Controllers
         public class TestStatusUpdateDto
         {
             public ExecutionStatus ExecutionStatus { get; set; }
-            public string Production { get; set; }
-            public string Comments { get; set; }
-            public string VideoURL { get; set; }
+            public string? Production { get; set; }
+            public string? Comments { get; set; }
+            public string? VideoURL { get; set; }
         }
     }
 }

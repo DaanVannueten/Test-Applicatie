@@ -7,7 +7,7 @@ namespace TestPlanManager.Models
     {
         public int TestCategoryId { get; set; }
         public int SprintId { get; set; }
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
         public int TotalTest { get; set; }
         public int OutOfScope { get; set; }
         public int Failed { get; set; }
@@ -23,7 +23,7 @@ namespace TestPlanManager.Models
         public Department Department { get; set; }
 
         // navigation
-        public Sprint Sprint { get; set; }
+        public Sprint Sprint { get; set; } = null!;
         public ICollection<Test> Tests { get; set; } = new List<Test>();
 
         // helper to recalc aggregates (optional)
