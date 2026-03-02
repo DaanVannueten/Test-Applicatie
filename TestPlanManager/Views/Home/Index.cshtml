@@ -4,8 +4,8 @@
     ViewData["Title"] = "Dashboard";
 }
 
-<div class="row mb-4">
-    <div class="col-md-3 col-sm-6 mb-3">
+<div class="dashboard-metrics mb-4">
+    <div class="metric-col">
         <div class="card metric-card">
             <div class="card-body">
                 <i class="bi bi-card-checklist"></i>
@@ -16,7 +16,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-3 col-sm-6 mb-3">
+    <div class="metric-col">
         <div class="card metric-card">
             <div class="card-body">
                 <i class="bi bi-play-circle"></i>
@@ -27,7 +27,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-3 col-sm-6 mb-3">
+    <div class="metric-col">
         <div class="card metric-card">
             <div class="card-body">
                 <i class="bi bi-bar-chart-line"></i>
@@ -38,7 +38,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-3 col-sm-6 mb-3">
+    <div class="metric-col">
         <div class="card metric-card">
             <div class="card-body">
                 <i class="bi bi-exclamation-triangle"></i>
@@ -51,7 +51,7 @@
     </div>
 </div>
 
-<div class="table-filters d-flex justify-content-between align-items-center">
+<div class="table-filters d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div style="min-width: 180px;">
         <select id="statusFilter" class="form-select form-select-sm" style="padding-right: 2.5rem;">
             <option value="">All Statuses</option>
@@ -110,53 +110,67 @@
         </div>
     </div>
 </div>
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Feature Name</th>
-            <th>Release</th>
-            <th>Owner</th>
-            <th>Progress</th>
-            <th>Test Results</th>
-            <th>Status</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-    @foreach(var cat in Model.Categories)
-    {
-        <tr class="status-row" data-status="@cat.Status" 
-            data-department="@cat.Department" 
-            data-release="@cat.BuildNr"
-            data-progress="@cat.PercentagePassed">
-            <td>@cat.Name</td>
-            <td>@cat.BuildNr</td>
-            <td>@cat.Department</td>
-            <td>
-                <div class="progress">
-                    <div class="progress-bar" role="progressbar"
-                         style="width: @cat.PercentagePassed%;"
-                         aria-valuenow="@cat.PercentagePassed" aria-valuemin="0" aria-valuemax="100">
-                        @cat.PercentagePassed.ToString("0.##")%
+<div class="table-responsive">
+    <table class="table dashboard-table">
+        <thead>
+            <tr>
+                <th>Feature Name</th>
+                <th>Version / Release</th>
+                <th>Owner</th>
+                <th>Progress</th>
+                <th>Test Results</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach(var cat in Model.Categories)
+        {
+            <tr class="status-row" data-status="@cat.Status" 
+                data-department="@cat.Department" 
+                data-release="@cat.BuildNr"
+                data-progress="@cat.PercentagePassed">
+                <td>
+                    <div class="feature-title">@cat.Name</div>
+                    @if (!string.IsNullOrWhiteSpace(cat.Description))
+                    {
+                        <div class="feature-subtitle">@cat.Description</div>
+                    }
+                </td>
+                <td class="release-cell">Release @cat.BuildNr</td>
+                <td class="owner-cell">
+                    <span class="owner-label owner-@cat.Department.ToString().ToLowerInvariant()">@cat.Department Team</span>
+                </td>
+                <td class="progress-cell">
+                    <div class="d-flex align-items-center gap-3 progress-wrap">
+                        <div class="progress flex-grow-1 dashboard-progress">
+                            <div class="progress-bar" role="progressbar"
+                                 style="width: @cat.PercentagePassed%;"
+                                 aria-valuenow="@cat.PercentagePassed" aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                        </div>
+                        <span class="small text-muted fw-semibold">@cat.PercentagePassed.ToString("0.##")%</span>
                     </div>
-                </div>
-            </td>
-            <td>
-                <span class="badge bg-success">P @cat.Passed</span>
-                <span class="badge bg-danger">F @cat.Failed</span>
-                <span class="badge bg-warning text-dark">B @cat.Blocked</span>
-                <span class="badge bg-secondary">OOS @cat.OutOfScope</span>
-                <span class="badge bg-light text-dark">NR @cat.NotRun</span>
-            </td>
-            <td>@cat.Status</td>
-            <td>
-                <a href="@Url.Action("Details", "TestCategory", new { id = cat.TestCategoryId })"
-                   class="btn btn-sm btn-primary">View Details &gt;</a>
-            </td>
-        </tr>
-    }
-    </tbody>
-</table>
+                </td>
+                <td class="results-cell">
+                    <div class="result-chips">
+                        <span class="result-chip result-pass">P @cat.Passed</span>
+                        <span class="result-chip result-fail">F @cat.Failed</span>
+                        <span class="result-chip result-blocked">B @cat.Blocked</span>
+                        <span class="result-chip result-oos">OOS @cat.OutOfScope</span>
+                        <span class="result-chip result-nr">NR @cat.NotRun</span>
+                    </div>
+                </td>
+                <td class="status-cell">@cat.Status</td>
+                <td class="actions-cell">
+                    <a href="@Url.Action("Details", "TestCategory", new { id = cat.TestCategoryId })"
+                       class="btn details-link">View Details <i class="bi bi-chevron-right"></i></a>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
 
 <script>
 const moreFiltersBtn = document.getElementById('moreFiltersBtn');

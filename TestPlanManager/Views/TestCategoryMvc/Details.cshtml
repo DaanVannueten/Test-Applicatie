@@ -6,7 +6,7 @@
 
 <div class="container-fluid px-4 py-5">
     <div class="mb-4">
-        <a href="@Url.Action("Index","Home")" class="btn btn-link">
+        <a href="@Url.Action("Index","Home")" class="btn back-nav-btn">
             <i class="bi bi-chevron-left me-1"></i> Back to Dashboard
         </a>
     </div>
@@ -67,10 +67,12 @@
                     <h6 class="mb-0"><i class="bi bi-graph-up me-2"></i>Test Progress</h6>
                     <span class="badge bg-primary">@Model.PercentagePassed.ToString("0.##")% Complete</span>
                 </div>
-                <div class="progress" style="height: 1.5rem;">
-                    <div class="progress-bar bg-gradient" role="progressbar" style="width:@Model.PercentagePassed%; background: #3b82f6 !important;" aria-valuenow="@Model.PercentagePassed" aria-valuemin="0" aria-valuemax="100">
-                        <span class="ms-2">@Model.PercentagePassed.ToString("0.##")%</span>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="progress flex-grow-1" style="height: 1.5rem;">
+                        <div class="progress-bar bg-gradient" role="progressbar" style="width:@Model.PercentagePassed%; background: #3b82f6 !important;" aria-valuenow="@Model.PercentagePassed" aria-valuemin="0" aria-valuemax="100">
+                        </div>
                     </div>
+                    <span class="small text-muted fw-semibold">@Model.PercentagePassed.ToString("0.##")%</span>
                 </div>
             </div>
 

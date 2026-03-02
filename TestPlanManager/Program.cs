@@ -37,5 +37,18 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
 
+var appUrl = Environment.GetEnvironmentVariable("APP_URL");
+var port = Environment.GetEnvironmentVariable("PORT");
 
-app.Run();
+if (!string.IsNullOrWhiteSpace(appUrl))
+{
+    app.Run(appUrl);
+}
+else if (!string.IsNullOrWhiteSpace(port))
+{
+    app.Run($"http://0.0.0.0:{port}");
+}
+else
+{
+    app.Run();
+}
