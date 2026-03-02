@@ -1,0 +1,222 @@
+﻿@model TestPlanManager.Models.DashboardViewModel
+
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="row mb-4">
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card metric-card">
+            <div class="card-body">
+                <i class="bi bi-card-checklist"></i>
+                <div>
+                    <h5>Total Test Cases</h5>
+                    <h2>@Model.TotalTestCases</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card metric-card">
+            <div class="card-body">
+                <i class="bi bi-play-circle"></i>
+                <div>
+                    <h5>Tests Executed Today</h5>
+                    <h2>@Model.TestsExecutedToday</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card metric-card">
+            <div class="card-body">
+                <i class="bi bi-bar-chart-line"></i>
+                <div>
+                    <h5>Overall Pass Rate</h5>
+                    <h2>@Model.OverallPassRate.ToString("0.##")% </h2>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card metric-card">
+            <div class="card-body">
+                <i class="bi bi-exclamation-triangle"></i>
+                <div>
+                    <h5>Open / Failed</h5>
+                    <h2>@Model.OpenOrFailed / @Model.TotalTestCases</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="table-filters d-flex justify-content-between align-items-center">
+    <div style="min-width: 180px;">
+        <select id="statusFilter" class="form-select form-select-sm" style="padding-right: 2.5rem;">
+            <option value="">All Statuses</option>
+            <option value="Completed">Completed</option>
+            <option value="In testing">In testing</option>
+            <option value="Not started">Not started</option>
+        </select>
+    </div>
+    <div class="d-flex align-items-center">
+        <button id="moreFiltersBtn" class="btn btn-sm btn-outline-secondary me-2" type="button">
+            <i class="bi bi-funnel me-1"></i>More Filters
+        </button>
+        <form method="post" asp-action="ResetAllTests" asp-controller="Home" onsubmit="return confirm('Reset all tests to Not Run? This cannot be undone.');">
+            <button type="submit" class="btn btn-sm btn-warning">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>Reset All Tests
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Advanced Filters Panel -->
+<div id="advancedFiltersPanel" class="card mb-3" style="display: none;">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label for="departmentFilter" class="form-label small">Department</label>
+                <select id="departmentFilter" class="form-select form-select-sm">
+                    <option value="">All Departments</option>
+                    <option value="IT">IT</option>
+                    <option value="Finance">Finance</option>
+                    <option value="Digital">Digital</option>
+                    <option value="Ops">Ops</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="releaseFilter" class="form-label small">Release</label>
+                <select id="releaseFilter" class="form-select form-select-sm">
+                    <option value="">All Releases</option>
+                    @foreach(var cat in Model.Categories.GroupBy(c => c.BuildNr))
+                    {
+                        <option value="@cat.Key">Release @cat.Key</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="progressFilter" class="form-label small">Min Progress (%)</label>
+                <input type="number" id="progressFilter" class="form-control form-control-sm" min="0" max="100" placeholder="0">
+            </div>
+        </div>
+        <div class="row g-3 mt-2">
+            <div class="col-12">
+                <button id="resetFiltersBtn" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-arrow-clockwise me-1"></i>Reset Filters
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Feature Name</th>
+            <th>Release</th>
+            <th>Owner</th>
+            <th>Progress</th>
+            <th>Test Results</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach(var cat in Model.Categories)
+    {
+        <tr class="status-row" data-status="@cat.Status" 
+            data-department="@cat.Department" 
+            data-release="@cat.BuildNr"
+            data-progress="@cat.PercentagePassed">
+            <td>@cat.Name</td>
+            <td>@cat.BuildNr</td>
+            <td>@cat.Department</td>
+            <td>
+                <div class="progress">
+                    <div class="progress-bar" role="progressbar"
+                         style="width: @cat.PercentagePassed%;"
+                         aria-valuenow="@cat.PercentagePassed" aria-valuemin="0" aria-valuemax="100">
+                        @cat.PercentagePassed.ToString("0.##")%
+                    </div>
+                </div>
+            </td>
+            <td>
+                <span class="badge bg-success">P @cat.Passed</span>
+                <span class="badge bg-danger">F @cat.Failed</span>
+                <span class="badge bg-warning text-dark">B @cat.Blocked</span>
+                <span class="badge bg-secondary">OOS @cat.OutOfScope</span>
+                <span class="badge bg-light text-dark">NR @cat.NotRun</span>
+            </td>
+            <td>@cat.Status</td>
+            <td>
+                <a href="@Url.Action("Details", "TestCategory", new { id = cat.TestCategoryId })"
+                   class="btn btn-sm btn-primary">View Details &gt;</a>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+<script>
+const moreFiltersBtn = document.getElementById('moreFiltersBtn');
+const advancedFiltersPanel = document.getElementById('advancedFiltersPanel');
+const statusFilter = document.getElementById('statusFilter');
+const departmentFilter = document.getElementById('departmentFilter');
+const releaseFilter = document.getElementById('releaseFilter');
+const progressFilter = document.getElementById('progressFilter');
+const resetFiltersBtn = document.getElementById('resetFiltersBtn');
+const rows = document.querySelectorAll('.status-row');
+
+// Toggle advanced filters panel
+moreFiltersBtn.addEventListener('click', function() {
+    advancedFiltersPanel.style.display = advancedFiltersPanel.style.display === 'none' ? 'block' : 'none';
+});
+
+// Apply all filters
+function applyFilters() {
+    const selectedStatus = statusFilter.value;
+    const selectedDepartment = departmentFilter.value;
+    const selectedRelease = releaseFilter.value;
+    const minProgress = parseInt(progressFilter.value) || 0;
+    
+    rows.forEach(row => {
+        const rowStatus = row.dataset.status;
+        const rowDepartment = row.dataset.department;
+        const rowRelease = row.dataset.release;
+        const rowProgress = parseFloat(row.dataset.progress);
+        
+        const statusMatch = selectedStatus === '' || rowStatus === selectedStatus;
+        const departmentMatch = selectedDepartment === '' || rowDepartment === selectedDepartment;
+        const releaseMatch = selectedRelease === '' || rowRelease === selectedRelease;
+        const progressMatch = rowProgress >= minProgress;
+        
+        if (statusMatch && departmentMatch && releaseMatch && progressMatch) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// Event listeners for filters
+statusFilter.addEventListener('change', applyFilters);
+departmentFilter.addEventListener('change', applyFilters);
+releaseFilter.addEventListener('change', applyFilters);
+progressFilter.addEventListener('input', applyFilters);
+
+// Reset filters
+resetFiltersBtn.addEventListener('click', function() {
+    statusFilter.value = '';
+    departmentFilter.value = '';
+    releaseFilter.value = '';
+    progressFilter.value = '';
+    applyFilters();
+    advancedFiltersPanel.style.display = 'none';
+});
+</script>
+
+    <!--
+        Dashboard design reference image (replace with your own screenshots if needed):
+        <img src="/images/dashboard-screenshot.png" alt="Dashboard design" class="img-fluid mt-3" />
+    -->
