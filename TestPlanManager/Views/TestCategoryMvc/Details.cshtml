@@ -6,7 +6,7 @@
 
 <div class="container-fluid px-4 py-5">
     <div class="mb-4">
-        <a href="@Url.Action("Index","Home")" class="btn back-nav-btn">
+        <a href="@Url.Action("Index", "Home", new { sprintId = Model.SprintId })" class="btn back-nav-btn">
             <i class="bi bi-chevron-left me-1"></i> Back to Dashboard
         </a>
     </div>
@@ -21,6 +21,22 @@
                     {
                         <p class="text-muted mb-3">@Model.Description</p>
                     }
+                </div>
+                <div class="d-flex gap-2">
+                    <a class="btn btn-sm btn-outline-primary"
+                       asp-action="EditCategory"
+                       asp-controller="TestCategoryMvc"
+                       asp-route-id="@Model.TestCategoryId"
+                       asp-route-returnUrl="@Context.Request.Path@Context.Request.QueryString">
+                        <i class="bi bi-pencil-square me-1"></i>Edit Category
+                    </a>
+                    <form asp-action="DeleteCategory" asp-controller="TestCategoryMvc" method="post" onsubmit="return confirm('This test category and all underlying tests will be deleted. Continue?');">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.TestCategoryId" />
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash me-1"></i>Delete Category
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -114,7 +130,7 @@
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0"><i class="bi bi-list-check me-2"></i>Test Cases (@Model.Tests.Count)</h5>
-            <a href="@Url.Action("CreateTest", "TestCategoryMvc", new { testCategoryId = Model.TestCategoryId })" class="btn btn-sm btn-success">
+            <a href="@Url.RouteUrl("test-create", new { testCategoryId = Model.TestCategoryId })" class="btn btn-sm btn-success">
                 <i class="bi bi-plus-circle me-1"></i> Add Test
             </a>
         </div>
@@ -133,8 +149,8 @@
                     <tbody>
                         @foreach(var t in Model.Tests)
                         {
-                            <tr onclick="window.location='@Url.Action("EditTest", "TestCategoryMvc", new { id = t.TestId })'" style="cursor:pointer;" class="table-row-hover">
-                                <td><a class="link-primary fw-bold" href="@Url.Action("EditTest", "TestCategoryMvc", new { id = t.TestId })">@($"TC-{t.TestId:D3}")</a></td>
+                            <tr id="test-@t.TestId" onclick="window.location='@Url.RouteUrl("test-edit", new { id = t.TestId })'" style="cursor:pointer;" class="table-row-hover">
+                                <td><a class="link-primary fw-bold" href="@Url.RouteUrl("test-edit", new { id = t.TestId })">@($"TC-{t.TestId:D3}")</a></td>
                                 <td><span class="fw-500">@t.Name</span></td>
                                 <td><small class="text-muted">@Model.Department</small></td>
                                 <td><span class="badge @GetBadgeClass(t.ScopeStatus)">@t.ScopeStatus</span></td>

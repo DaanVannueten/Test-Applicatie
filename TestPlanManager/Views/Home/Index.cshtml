@@ -4,6 +4,16 @@
     ViewData["Title"] = "Dashboard";
 }
 
+<div class="d-flex justify-content-between align-items-center mt-3 mb-3">
+    <h4 class="mb-0">Dashboard</h4>
+    <div class="d-flex align-items-center gap-2">
+        <a class="btn btn-sm btn-outline-primary" asp-controller="TestPlanVersion" asp-action="Index">
+            <i class="bi bi-diagram-3 me-1"></i>Go to Versions
+        </a>
+        <span class="badge bg-secondary">Version: @(Model.SelectedBuildNr.HasValue ? $"Build {Model.SelectedBuildNr.Value}" : "No version")</span>
+    </div>
+</div>
+
 <div class="dashboard-metrics mb-4">
     <div class="metric-col">
         <div class="card metric-card">
@@ -21,7 +31,7 @@
             <div class="card-body">
                 <i class="bi bi-play-circle"></i>
                 <div>
-                    <h5>Tests Executed Today</h5>
+                    <h5>Tests Executed</h5>
                     <h2>@Model.TestsExecutedToday</h2>
                 </div>
             </div>
@@ -64,7 +74,18 @@
         <button id="moreFiltersBtn" class="btn btn-sm btn-outline-secondary me-2" type="button">
             <i class="bi bi-funnel me-1"></i>More Filters
         </button>
+        @if (Model.SelectedSprintId.HasValue)
+        {
+            <form method="get" asp-controller="TestCategoryMvc" asp-action="CreateCategory" class="me-2">
+                <input type="hidden" name="sprintId" value="@Model.SelectedSprintId.Value" />
+                <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                <button type="submit" class="btn btn-sm btn-primary">
+                    <i class="bi bi-folder-plus me-1"></i>Create Test Category
+                </button>
+            </form>
+        }
         <form method="post" asp-action="ResetAllTests" asp-controller="Home" onsubmit="return confirm('Reset all tests to Not Run? This cannot be undone.');">
+            <input type="hidden" name="sprintId" value="@Model.SelectedSprintId" />
             <button type="submit" class="btn btn-sm btn-warning">
                 <i class="bi bi-arrow-counterclockwise me-1"></i>Reset All Tests
             </button>
@@ -124,49 +145,60 @@
             </tr>
         </thead>
         <tbody>
-        @foreach(var cat in Model.Categories)
+        @if (!Model.Categories.Any())
         {
-            <tr class="status-row" data-status="@cat.Status" 
-                data-department="@cat.Department" 
-                data-release="@cat.BuildNr"
-                data-progress="@cat.PercentagePassed">
-                <td>
-                    <div class="feature-title">@cat.Name</div>
-                    @if (!string.IsNullOrWhiteSpace(cat.Description))
-                    {
-                        <div class="feature-subtitle">@cat.Description</div>
-                    }
-                </td>
-                <td class="release-cell">Release @cat.BuildNr</td>
-                <td class="owner-cell">
-                    <span class="owner-label owner-@cat.Department.ToString().ToLowerInvariant()">@cat.Department Team</span>
-                </td>
-                <td class="progress-cell">
-                    <div class="d-flex align-items-center gap-3 progress-wrap">
-                        <div class="progress flex-grow-1 dashboard-progress">
-                            <div class="progress-bar" role="progressbar"
-                                 style="width: @cat.PercentagePassed%;"
-                                 aria-valuenow="@cat.PercentagePassed" aria-valuemin="0" aria-valuemax="100">
-                            </div>
-                        </div>
-                        <span class="small text-muted fw-semibold">@cat.PercentagePassed.ToString("0.##")%</span>
-                    </div>
-                </td>
-                <td class="results-cell">
-                    <div class="result-chips">
-                        <span class="result-chip result-pass">P @cat.Passed</span>
-                        <span class="result-chip result-fail">F @cat.Failed</span>
-                        <span class="result-chip result-blocked">B @cat.Blocked</span>
-                        <span class="result-chip result-oos">OOS @cat.OutOfScope</span>
-                        <span class="result-chip result-nr">NR @cat.NotRun</span>
-                    </div>
-                </td>
-                <td class="status-cell">@cat.Status</td>
-                <td class="actions-cell">
-                    <a href="@Url.Action("Details", "TestCategory", new { id = cat.TestCategoryId })"
-                       class="btn details-link">View Details <i class="bi bi-chevron-right"></i></a>
+            <tr>
+                <td colspan="7" class="text-center text-muted py-4">
+                    No categories in this version. Create a version by copying or add categories through the API.
                 </td>
             </tr>
+        }
+        else
+        {
+            @foreach(var cat in Model.Categories)
+            {
+                <tr class="status-row" data-status="@cat.Status" 
+                    data-department="@cat.Department" 
+                    data-release="@cat.BuildNr"
+                    data-progress="@cat.PercentagePassed">
+                    <td>
+                        <div class="feature-title">@cat.Name</div>
+                        @if (!string.IsNullOrWhiteSpace(cat.Description))
+                        {
+                            <div class="feature-subtitle">@cat.Description</div>
+                        }
+                    </td>
+                    <td class="release-cell">Release @cat.BuildNr</td>
+                    <td class="owner-cell">
+                        <span class="owner-label owner-@cat.Department.ToString().ToLowerInvariant()">@cat.Department Team</span>
+                    </td>
+                    <td class="progress-cell">
+                        <div class="d-flex align-items-center gap-3 progress-wrap">
+                            <div class="progress flex-grow-1 dashboard-progress">
+                                <div class="progress-bar" role="progressbar"
+                                     style="width: @cat.PercentagePassed%;"
+                                     aria-valuenow="@cat.PercentagePassed" aria-valuemin="0" aria-valuemax="100">
+                                </div>
+                            </div>
+                            <span class="small text-muted fw-semibold">@cat.PercentagePassed.ToString("0.##")%</span>
+                        </div>
+                    </td>
+                    <td class="results-cell">
+                        <div class="result-chips">
+                            <span class="result-chip result-pass">P @cat.Passed</span>
+                            <span class="result-chip result-fail">F @cat.Failed</span>
+                            <span class="result-chip result-blocked">B @cat.Blocked</span>
+                            <span class="result-chip result-oos">OOS @cat.OutOfScope</span>
+                            <span class="result-chip result-nr">NR @cat.NotRun</span>
+                        </div>
+                    </td>
+                    <td class="status-cell">@cat.Status</td>
+                    <td class="actions-cell">
+                        <a href="@Url.RouteUrl("test-category-details", new { id = cat.TestCategoryId })"
+                           class="btn details-link">View Details <i class="bi bi-chevron-right"></i></a>
+                    </td>
+                </tr>
+            }
         }
         </tbody>
     </table>

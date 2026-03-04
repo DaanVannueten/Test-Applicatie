@@ -1,0 +1,75 @@
+@model TestPlanManager.Models.EditCategoryInputModel
+
+@{
+    ViewData["Title"] = "Edit Category";
+}
+
+<div class="container-fluid px-4 py-5">
+    <div class="row mb-4">
+        <div class="col-12">
+            <a href="@(string.IsNullOrWhiteSpace(Model.ReturnUrl) ? Url.Action("Details", new { id = Model.TestCategoryId }) : Model.ReturnUrl)" class="btn back-nav-btn">
+                <i class="bi bi-chevron-left me-1"></i> Back to Category
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Edit Test Category</h5>
+                        <span class="badge bg-secondary">Build @Model.BuildNr</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form asp-action="EditCategory" asp-controller="TestCategoryMvc" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="TestCategoryId" />
+                        <input type="hidden" asp-for="SprintId" />
+                        <input type="hidden" asp-for="BuildNr" />
+                        <input type="hidden" asp-for="ReturnUrl" />
+
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                        <div class="mb-4">
+                            <label asp-for="Name" class="form-label">Category Name <span class="text-danger">*</span></label>
+                            <input asp-for="Name" class="form-control form-control-lg" required />
+                            <span asp-validation-for="Name" class="text-danger d-block mt-1"></span>
+                        </div>
+
+                        <div class="mb-4">
+                            <label asp-for="Description" class="form-label">Description</label>
+                            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label asp-for="Department" class="form-label">Department</label>
+                                <select asp-for="Department" class="form-select form-select-lg" asp-items="Html.GetEnumSelectList<TestPlanManager.Models.Department>()"></select>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Sequence" class="form-label">Order</label>
+                                <input asp-for="Sequence" type="number" min="1" class="form-control form-control-lg" />
+                                <span asp-validation-for="Sequence" class="text-danger d-block mt-1"></span>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 pt-3 border-top">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-check-circle me-1"></i> Save Changes
+                            </button>
+                            <a href="@(string.IsNullOrWhiteSpace(Model.ReturnUrl) ? Url.Action("Details", new { id = Model.TestCategoryId }) : Model.ReturnUrl)" class="btn btn-secondary btn-lg">
+                                <i class="bi bi-x-circle me-1"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

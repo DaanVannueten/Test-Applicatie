@@ -20,6 +20,7 @@ namespace TestPlanManager.Controllers
         public async Task<IActionResult> Details(int id)
         {
             var cat = await _ctx.TestCategories
+                .Include(tc => tc.Sprint)
                 .Include(tc => tc.Tests)
                 .FirstOrDefaultAsync(tc => tc.TestCategoryId == id);
             if (cat == null) return NotFound();
@@ -46,7 +47,7 @@ namespace TestPlanManager.Controllers
                 .FirstOrDefaultAsync(tc => tc.TestCategoryId == TestCategoryId);
             if (category == null) return NotFound();
 
-            test.Name = Name;
+            test.Name = TestTitleSanitizer.Clean(Name);
             test.ScopeStatus = ScopeStatus;
             test.ExecutionStatus = ExecutionStatus;
             test.Production = Production ?? "";
@@ -68,7 +69,8 @@ namespace TestPlanManager.Controllers
 
             _ctx.Tests.Update(test);
             await _ctx.SaveChangesAsync();
-            return RedirectToAction("Details", new { id = TestCategoryId });
+            var detailsUrl = Url.Action("Details", new { id = TestCategoryId });
+            return Redirect($"{detailsUrl}#test-{TestId}");
         }
 
         [HttpGet]
@@ -90,6 +92,7 @@ namespace TestPlanManager.Controllers
                 return View(model);
             }
 
+            model.Name = TestTitleSanitizer.Clean(model.Name);
             model.ExecutionStatus = ExecutionStatus.NotRun;
             model.ScopeStatus = model.ScopeStatus == 0 ? ScopeStatus.InScope : model.ScopeStatus;
             model.Production = model.Production ?? "";
@@ -110,6 +113,163 @@ namespace TestPlanManager.Controllers
             _ctx.Tests.Remove(test);
             await _ctx.SaveChangesAsync();
             return RedirectToAction("Details", new { id = testCategoryId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteCategory(int id)
+        {
+            var category = await _ctx.TestCategories
+                .FirstOrDefaultAsync(tc => tc.TestCategoryId == id);
+
+            if (category == null)
+            {
+                TempData["ErrorMessage"] = "Test category not found.";
+                return RedirectToAction("Index", "Home");
+            }
+
+            var sprintId = category.SprintId;
+
+            _ctx.TestCategories.Remove(category);
+            await _ctx.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Test category has been deleted.";
+            return RedirectToAction("Index", "Home", new { sprintId });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> EditCategory(int id, string? returnUrl)
+        {
+            var category = await _ctx.TestCategories
+                .Include(tc => tc.Sprint)
+                .FirstOrDefaultAsync(tc => tc.TestCategoryId == id);
+
+            if (category == null)
+            {
+                TempData["ErrorMessage"] = "Test category not found.";
+                return RedirectToAction("Index", "Home");
+            }
+
+            var model = new EditCategoryInputModel
+            {
+                TestCategoryId = category.TestCategoryId,
+                SprintId = category.SprintId,
+                Name = category.Name,
+                Description = category.Description,
+                Department = category.Department,
+                Sequence = category.Sequence,
+                BuildNr = category.Sprint.BuildNr,
+                ReturnUrl = string.IsNullOrWhiteSpace(returnUrl)
+                    ? Url.Action("Details", new { id = category.TestCategoryId })
+                    : returnUrl
+            };
+
+            return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditCategory(EditCategoryInputModel model)
+        {
+            var category = await _ctx.TestCategories
+                .Include(tc => tc.Sprint)
+                .FirstOrDefaultAsync(tc => tc.TestCategoryId == model.TestCategoryId);
+
+            if (category == null)
+            {
+                TempData["ErrorMessage"] = "Test category not found.";
+                return RedirectToAction("Index", "Home");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                model.BuildNr = category.Sprint.BuildNr;
+                model.ReturnUrl ??= Url.Action("Details", new { id = category.TestCategoryId });
+                return View(model);
+            }
+
+            category.Name = model.Name.Trim();
+            category.Description = string.IsNullOrWhiteSpace(model.Description) ? null : model.Description.Trim();
+            category.Department = model.Department;
+            category.Sequence = model.Sequence;
+
+            await _ctx.SaveChangesAsync();
+
+            if (!string.IsNullOrWhiteSpace(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
+            {
+                return LocalRedirect(model.ReturnUrl);
+            }
+
+            return RedirectToAction("Details", new { id = category.TestCategoryId });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CreateCategory(int sprintId, string? returnUrl)
+        {
+            var sprint = await _ctx.Sprints.FindAsync(sprintId);
+            if (sprint == null)
+            {
+                TempData["ErrorMessage"] = "Select a valid version first to add a category.";
+                return RedirectToAction("Index", "TestPlanVersion");
+            }
+
+            var category = new CreateCategoryInputModel
+            {
+                SprintId = sprintId,
+                BuildNr = sprint.BuildNr,
+                ReturnUrl = string.IsNullOrWhiteSpace(returnUrl)
+                    ? Url.Action("Index", "Home", new { sprintId })
+                    : returnUrl,
+                Department = Department.IT,
+                Sequence = 1
+            };
+
+            return View(category);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateCategory(CreateCategoryInputModel model)
+        {
+            var sprint = await _ctx.Sprints.FindAsync(model.SprintId);
+            if (sprint == null)
+            {
+                TempData["ErrorMessage"] = "The selected version no longer exists.";
+                return RedirectToAction("Index", "TestPlanVersion");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                model.BuildNr = sprint.BuildNr;
+                model.ReturnUrl ??= Url.Action("Index", "Home", new { sprintId = model.SprintId });
+                return View(model);
+            }
+
+            var category = new TestCategory
+            {
+                SprintId = model.SprintId,
+                Name = model.Name.Trim(),
+                Description = string.IsNullOrWhiteSpace(model.Description) ? null : model.Description.Trim(),
+                Department = model.Department,
+                Sequence = model.Sequence,
+                TotalTest = 0,
+                OutOfScope = 0,
+                Failed = 0,
+                Blocked = 0,
+                Passed = 0,
+                PercentagePassed = 0,
+                TestDate = null
+            };
+
+            _ctx.TestCategories.Add(category);
+            await _ctx.SaveChangesAsync();
+
+            if (!string.IsNullOrWhiteSpace(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
+            {
+                return LocalRedirect(model.ReturnUrl);
+            }
+
+            return RedirectToAction("Index", "Home", new { sprintId = model.SprintId });
         }
     }
 }

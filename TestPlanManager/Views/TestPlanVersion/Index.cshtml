@@ -1,0 +1,127 @@
+@model TestPlanManager.Models.TestPlanVersionPageViewModel
+
+@{
+    ViewData["Title"] = "Version Management";
+}
+
+<div class="d-flex justify-content-between align-items-center mt-3 mb-3">
+    <h4 class="mb-0">Test Plan Versions</h4>
+</div>
+
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @successMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @errorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6>Create Empty Version</h6>
+                <form method="post" asp-action="Create" asp-controller="TestPlanVersion">
+                    @Html.AntiForgeryToken()
+                    <div class="input-group">
+                        <input type="number" min="1" name="BuildNr" class="form-control" placeholder="Build nr" required />
+                        <button type="submit" class="btn btn-primary">Create</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6>Copy Existing Version</h6>
+                <form method="post" asp-action="Copy" asp-controller="TestPlanVersion">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <input type="number" min="1" name="BuildNr" class="form-control" placeholder="New build number" required />
+                        </div>
+                        <div class="col-md-5">
+                            <select name="CopyFromSprintId" class="form-select" required>
+                                <option value="">Select source version</option>
+                                @foreach (var version in Model.Versions)
+                                {
+                                    <option value="@version.SprintId">Build @version.BuildNr</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-grid">
+                            <button type="submit" class="btn btn-outline-primary">Copy version</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table dashboard-table">
+        <thead>
+            <tr>
+                <th>Version</th>
+                <th>Categorieën</th>
+                <th>Tests</th>
+                <th>Laatst uitgevoerd</th>
+                <th>Acties</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Versions.Any())
+            {
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-4">No versions available yet.</td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var version in Model.Versions)
+                {
+                    <tr>
+                        <td>
+                            Build @version.BuildNr
+                            @if (Model.DefaultSprintId == version.SprintId)
+                            {
+                                <span class="badge bg-primary ms-2">Default</span>
+                            }
+                        </td>
+                        <td>@version.CategoryCount</td>
+                        <td>@version.TestCount</td>
+                        <td>@(version.LastExecutionDate.HasValue ? version.LastExecutionDate.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm") : "-")</td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                <a class="btn btn-sm btn-outline-secondary" asp-controller="Home" asp-action="Index" asp-route-sprintId="@version.SprintId">Open</a>
+                                @if (Model.DefaultSprintId != version.SprintId)
+                                {
+                                    <form method="post" asp-action="SetDefault" asp-controller="TestPlanVersion">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="sprintId" value="@version.SprintId" />
+                                        <button type="submit" class="btn btn-sm btn-outline-primary">Set as Default</button>
+                                    </form>
+                                }
+                                <form method="post" asp-action="Delete" asp-controller="TestPlanVersion" onsubmit="return confirm('This version and all underlying tests will be deleted. Continue?');">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="sprintId" value="@version.SprintId" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>

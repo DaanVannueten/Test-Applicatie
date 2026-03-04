@@ -21,7 +21,7 @@
     <header>
         <nav class="navbar navbar-expand-lg navbar-light border-bottom sticky-top" style="background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
             <div class="container-fluid px-4">
-                <a class="navbar-brand fw-bold d-flex align-items-center" asp-area="" asp-controller="Home" asp-action="Index" style="font-size: 1.4rem; color: #1e293b;">
+                <a class="navbar-brand fw-bold d-flex align-items-center" asp-area="" asp-controller="Home" asp-action="GoToDefault" style="font-size: 1.4rem; color: #1e293b;">
                     <i class="bi bi-clipboard2-check me-2" style="font-size: 1.8rem; color: #475569;"></i>
                     Test Plan Manager
                 </a>
@@ -29,6 +29,9 @@
                     <ul class="navbar-nav flex-grow-1 ms-3">
                         <li class="nav-item">
                             <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")" asp-area="" asp-controller="Home" asp-action="Index" style="color: #475569;"><i class="bi bi-graph-up me-1"></i>Dashboard</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "TestPlanVersion" ? "active" : "")" asp-controller="TestPlanVersion" asp-action="Index" style="color: #475569;"><i class="bi bi-diagram-3 me-1"></i>Versions</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "TestCategoryMvc" ? "active" : "")" asp-controller="TestCategoryMvc" asp-action="Index" style="color: #475569;"><i class="bi bi-list-check me-1"></i>Categories</a>

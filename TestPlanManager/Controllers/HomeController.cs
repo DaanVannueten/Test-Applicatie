@@ -9,18 +9,40 @@ namespace TestPlanManager.Controllers;
 public class HomeController : Controller
 {
     private readonly TestPlanManager.Data.TestPlanContext _ctx;
-    public HomeController(TestPlanManager.Data.TestPlanContext ctx)
+    private readonly TestPlanManager.Data.IDefaultVersionStore _defaultVersionStore;
+    public HomeController(
+        TestPlanManager.Data.TestPlanContext ctx,
+        TestPlanManager.Data.IDefaultVersionStore defaultVersionStore)
     {
         _ctx = ctx;
+        _defaultVersionStore = defaultVersionStore;
     }
 
-    public async Task<IActionResult> Index()
+    [HttpGet]
+    public IActionResult GoToDefault()
     {
-        // load categories and tests so we can do accurate computations
-        var categories = await _ctx.TestCategories
-            .Include(tc => tc.Sprint)
-            .Include(tc => tc.Tests)
+        return RedirectToAction(nameof(Index));
+    }
+
+    public async Task<IActionResult> Index(int? sprintId)
+    {
+        var sprints = await _ctx.Sprints
+            .Include(s => s.TestCategories)
+            .ThenInclude(tc => tc.Tests)
+            .OrderByDescending(s => s.BuildNr)
             .ToListAsync();
+
+        var defaultSprintId = _defaultVersionStore.GetDefaultSprintId();
+
+        var selectedSprint = sprintId.HasValue
+            ? sprints.FirstOrDefault(s => s.SprintId == sprintId.Value)
+            : defaultSprintId.HasValue
+                ? sprints.FirstOrDefault(s => s.SprintId == defaultSprintId.Value)
+                : null;
+
+        selectedSprint ??= sprints.FirstOrDefault();
+
+        var categories = selectedSprint?.TestCategories.ToList() ?? new List<TestCategory>();
 
         // recalc the aggregates on each category entity
         foreach (var cat in categories)
@@ -32,10 +54,7 @@ public class HomeController : Controller
         var tests = categories.SelectMany(tc => tc.Tests.Select(t => new { t, tc.TestDate })).ToList();
         var totalTestCases = tests.Count;
 
-        var today = DateTime.UtcNow.Date;
-        var testsExecutedToday = categories
-            .Where(tc => tc.TestDate.HasValue && tc.TestDate.Value.Date == today)
-            .Sum(tc => tc.Tests.Count(t => t.ExecutionStatus != Models.ExecutionStatus.NotRun));
+        var testsExecuted = tests.Count(x => x.t.ExecutionStatus != Models.ExecutionStatus.NotRun);
 
         var passed = tests.Count(x => x.t.ExecutionStatus == Models.ExecutionStatus.Passed);
         var openOrFailed = tests.Count(x => x.t.ExecutionStatus == Models.ExecutionStatus.Failed ||
@@ -48,7 +67,7 @@ public class HomeController : Controller
             TestCategoryId = tc.TestCategoryId,
             Name = tc.Name,
             Description = tc.Description,
-            BuildNr = tc.Sprint.BuildNr,
+            BuildNr = selectedSprint?.BuildNr ?? 0,
             Department = tc.Department,
 
             Passed = tc.Passed,
@@ -61,9 +80,11 @@ public class HomeController : Controller
 
         var vm = new Models.DashboardViewModel
         {
+            SelectedSprintId = selectedSprint?.SprintId,
+            SelectedBuildNr = selectedSprint?.BuildNr,
             Categories = dtos,
             TotalTestCases = totalTestCases,
-            TestsExecutedToday = testsExecutedToday,
+            TestsExecutedToday = testsExecuted,
             OverallPassRate = overallPassRate,
             OpenOrFailed = openOrFailed
         };
@@ -73,22 +94,34 @@ public class HomeController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ResetAllTests()
+    public async Task<IActionResult> ResetAllTests(int? sprintId)
     {
-        // set every test to NotRun and clear date
-        var allTests = await _ctx.Tests.ToListAsync();
-        foreach (var t in allTests)
+        var targetSprintId = sprintId ?? await _ctx.Sprints
+            .OrderByDescending(s => s.BuildNr)
+            .Select(s => (int?)s.SprintId)
+            .FirstOrDefaultAsync();
+
+        if (!targetSprintId.HasValue)
         {
-            t.ExecutionStatus = Models.ExecutionStatus.NotRun;
+            return RedirectToAction(nameof(Index));
         }
 
-        var allCategories = await _ctx.TestCategories.ToListAsync();
+        var allCategories = await _ctx.TestCategories
+            .Include(tc => tc.Tests)
+            .Where(tc => tc.SprintId == targetSprintId.Value)
+            .ToListAsync();
+
         foreach (var category in allCategories)
         {
+            foreach (var test in category.Tests)
+            {
+                test.ExecutionStatus = Models.ExecutionStatus.NotRun;
+            }
+
             category.TestDate = null;
         }
 
         await _ctx.SaveChangesAsync();
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Index), new { sprintId = targetSprintId.Value });
     }
 }

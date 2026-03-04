@@ -2,6 +2,15 @@ using System.Collections.Generic;
 
 namespace TestPlanManager.Models
 {
+    public class TestPlanVersionDto
+    {
+        public int SprintId { get; set; }
+        public int BuildNr { get; set; }
+        public int CategoryCount { get; set; }
+        public int TestCount { get; set; }
+        public DateTime? LastExecutionDate { get; set; }
+    }
+
     public class TestCategoryDto
     {
         public int TestCategoryId { get; set; }
@@ -28,6 +37,9 @@ namespace TestPlanManager.Models
 
     public class DashboardViewModel
     {
+        public IEnumerable<TestPlanVersionDto> Versions { get; set; } = new List<TestPlanVersionDto>();
+        public int? SelectedSprintId { get; set; }
+        public int? SelectedBuildNr { get; set; }
         public IEnumerable<TestCategoryDto> Categories { get; set; } = new List<TestCategoryDto>();
 
         // additional dashboard metrics derived from actual test rows
