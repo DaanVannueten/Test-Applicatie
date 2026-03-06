@@ -51,14 +51,18 @@ public class HomeController : Controller
         }
 
         // metric calculations based on the actual test rows
-        var tests = categories.SelectMany(tc => tc.Tests.Select(t => new { t, tc.TestDate })).ToList();
+        var tests = categories.SelectMany(tc => tc.Tests).ToList();
         var totalTestCases = tests.Count;
 
-        var testsExecuted = tests.Count(x => x.t.ExecutionStatus != Models.ExecutionStatus.NotRun);
+        var todayUtc = DateTime.UtcNow.Date;
+        var testsExecuted = tests.Count(t =>
+            t.ExecutionStatus != Models.ExecutionStatus.NotRun &&
+            t.ExecutedAt.HasValue &&
+            t.ExecutedAt.Value.Date == todayUtc);
 
-        var passed = tests.Count(x => x.t.ExecutionStatus == Models.ExecutionStatus.Passed);
-        var openOrFailed = tests.Count(x => x.t.ExecutionStatus == Models.ExecutionStatus.Failed ||
-                                           x.t.ExecutionStatus == Models.ExecutionStatus.Blocked);
+        var passed = tests.Count(t => t.ExecutionStatus == Models.ExecutionStatus.Passed);
+        var openOrFailed = tests.Count(t => t.ExecutionStatus == Models.ExecutionStatus.Failed ||
+                                           t.ExecutionStatus == Models.ExecutionStatus.Blocked);
 
         var overallPassRate = totalTestCases == 0 ? 0f : ((float)passed / totalTestCases) * 100;
 

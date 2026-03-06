@@ -33,28 +33,34 @@ namespace TestPlanManager.Controllers
             var t = await _ctx.Tests.FindAsync(id);
             if (t == null) return NotFound();
 
+            var previousStatus = t.ExecutionStatus;
+
             var category = await _ctx.TestCategories
                 .Include(tc => tc.Tests)
                 .FirstOrDefaultAsync(tc => tc.TestCategoryId == t.TestCategoryId);
             if (category == null) return NotFound();
 
             t.ExecutionStatus = dto.ExecutionStatus;
-            t.Production = dto.Production;
+            t.Production = dto.Production ?? "";
             t.Comments = dto.Comments;
             t.VideoURL = dto.VideoURL;
 
             if (dto.ExecutionStatus != ExecutionStatus.NotRun)
             {
-                category.TestDate = DateTime.UtcNow;
+                if (previousStatus == ExecutionStatus.NotRun || !t.ExecutedAt.HasValue)
+                {
+                    t.ExecutedAt = DateTime.UtcNow;
+                }
             }
             else
             {
-                var hasAnyExecuted = category.Tests
-                    .Where(test => test.TestId != t.TestId)
-                    .Any(test => test.ExecutionStatus != ExecutionStatus.NotRun);
-
-                category.TestDate = hasAnyExecuted ? category.TestDate : null;
+                t.ExecutedAt = null;
             }
+
+            category.TestDate = category.Tests
+                .Where(test => test.ExecutionStatus != ExecutionStatus.NotRun && test.ExecutedAt.HasValue)
+                .Select(test => test.ExecutedAt)
+                .Max();
 
             await _ctx.SaveChangesAsync();
             return NoContent();

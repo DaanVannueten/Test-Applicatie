@@ -42,6 +42,8 @@ namespace TestPlanManager.Controllers
             var test = await _ctx.Tests.FindAsync(TestId);
             if (test == null) return NotFound();
 
+            var previousStatus = test.ExecutionStatus;
+
             var category = await _ctx.TestCategories
                 .Include(tc => tc.Tests)
                 .FirstOrDefaultAsync(tc => tc.TestCategoryId == TestCategoryId);
@@ -56,16 +58,20 @@ namespace TestPlanManager.Controllers
 
             if (ExecutionStatus != Models.ExecutionStatus.NotRun)
             {
-                category.TestDate = DateTime.UtcNow;
+                if (previousStatus == Models.ExecutionStatus.NotRun || !test.ExecutedAt.HasValue)
+                {
+                    test.ExecutedAt = DateTime.UtcNow;
+                }
             }
             else
             {
-                var hasAnyExecuted = category.Tests
-                    .Where(t => t.TestId != TestId)
-                    .Any(t => t.ExecutionStatus != Models.ExecutionStatus.NotRun);
-
-                category.TestDate = hasAnyExecuted ? category.TestDate : null;
+                test.ExecutedAt = null;
             }
+
+            category.TestDate = category.Tests
+                .Where(t => t.ExecutionStatus != Models.ExecutionStatus.NotRun && t.ExecutedAt.HasValue)
+                .Select(t => t.ExecutedAt)
+                .Max();
 
             _ctx.Tests.Update(test);
             await _ctx.SaveChangesAsync();

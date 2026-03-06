@@ -32,7 +32,7 @@
                 <form method="post" asp-action="Create" asp-controller="TestPlanVersion">
                     @Html.AntiForgeryToken()
                     <div class="input-group">
-                        <input type="number" min="1" name="BuildNr" class="form-control" placeholder="Build nr" required />
+                        <input type="number" min="1" name="BuildNr" class="form-control" placeholder="Build number" required />
                         <button type="submit" class="btn btn-primary">Create</button>
                     </div>
                 </form>
@@ -73,10 +73,10 @@
         <thead>
             <tr>
                 <th>Version</th>
-                <th>Categorieën</th>
+                <th>Categories</th>
                 <th>Tests</th>
-                <th>Laatst uitgevoerd</th>
-                <th>Acties</th>
+                <th>Last Executed</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>

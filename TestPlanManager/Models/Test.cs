@@ -10,7 +10,8 @@ namespace TestPlanManager.Models
         public string Description { get; set; } = string.Empty;
         public string? Comments { get; set; }
         public string? VideoURL { get; set; }
-        public string? Production { get; set; }
+        public string Production { get; set; } = string.Empty;
+        public DateTime? ExecutedAt { get; set; }
 
         // navigation
         public TestCategory TestCategory { get; set; } = null!;
