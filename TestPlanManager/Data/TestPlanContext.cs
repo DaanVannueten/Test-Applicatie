@@ -1,9 +1,10 @@
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using TestPlanManager.Models;
 
 namespace TestPlanManager.Data
 {
-    public class TestPlanContext : DbContext
+    public class TestPlanContext : IdentityDbContext<ApplicationUser>
     {
         public TestPlanContext(DbContextOptions<TestPlanContext> options)
             : base(options)

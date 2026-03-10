@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TestPlanManager.Data;
 
@@ -10,9 +11,11 @@ using TestPlanManager.Data;
 namespace TestPlanManager.Migrations
 {
     [DbContext(typeof(TestPlanContext))]
-    partial class TestPlanContextModelSnapshot : ModelSnapshot
+    [Migration("20260310101033_AddIdentityAuth")]
+    partial class AddIdentityAuth
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.3");
@@ -215,12 +218,7 @@ namespace TestPlanManager.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("BuildNr")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsArchived")
+                    b.Property<int>("BuildNr")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("SprintId");
@@ -248,9 +246,6 @@ namespace TestPlanManager.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("MediaUrl")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -265,6 +260,9 @@ namespace TestPlanManager.Migrations
 
                     b.Property<int>("TestCategoryId")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("VideoURL")
+                        .HasColumnType("TEXT");
 
                     b.HasKey("TestId");
 

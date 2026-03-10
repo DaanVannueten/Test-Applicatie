@@ -34,7 +34,14 @@ namespace TestPlanManager.Models
             Failed = Tests.Count(t => t.ExecutionStatus == ExecutionStatus.Failed);
             Blocked = Tests.Count(t => t.ExecutionStatus == ExecutionStatus.Blocked);
             Passed = Tests.Count(t => t.ExecutionStatus == ExecutionStatus.Passed);
-            PercentagePassed = TotalTest == 0 ? 0 : ((float)Passed / TotalTest) * 100;
+
+            // Progress only reflects results within scope.
+            var inScopeTotal = Tests.Count(t => t.ScopeStatus == ScopeStatus.InScope);
+            var passedInScope = Tests.Count(t =>
+                t.ScopeStatus == ScopeStatus.InScope &&
+                t.ExecutionStatus == ExecutionStatus.Passed);
+
+            PercentagePassed = inScopeTotal == 0 ? 0 : ((float)passedInScope / inScopeTotal) * 100;
         }
 
         private string DetermineStatus()

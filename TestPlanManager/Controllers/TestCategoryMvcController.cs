@@ -1,4 +1,6 @@
 using System.Linq;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TestPlanManager.Data;
@@ -6,10 +8,23 @@ using TestPlanManager.Models;
 
 namespace TestPlanManager.Controllers
 {
+    [Authorize]
     public class TestCategoryMvcController : Controller
     {
         private readonly TestPlanContext _ctx;
-        public TestCategoryMvcController(TestPlanContext ctx) => _ctx = ctx;
+        private readonly IWebHostEnvironment _environment;
+        private static readonly HashSet<string> AllowedMediaExtensions = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".mp4", ".webm", ".mov", ".avi"
+        };
+
+        private const long MaxMediaFileSizeBytes = 50 * 1024 * 1024;
+
+        public TestCategoryMvcController(TestPlanContext ctx, IWebHostEnvironment environment)
+        {
+            _ctx = ctx;
+            _environment = environment;
+        }
 
         // list of all categories (maybe redirect to dashboard)
         public IActionResult Index()
@@ -37,26 +52,46 @@ namespace TestPlanManager.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> EditTest(int TestId, int TestCategoryId, string Name, ScopeStatus ScopeStatus, ExecutionStatus ExecutionStatus, string Production, string Comments, string VideoURL)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditTest(Test model, IFormFile? mediaFile, bool removeMedia = false)
         {
-            var test = await _ctx.Tests.FindAsync(TestId);
+            var test = await _ctx.Tests.FindAsync(model.TestId);
             if (test == null) return NotFound();
 
             var previousStatus = test.ExecutionStatus;
 
             var category = await _ctx.TestCategories
                 .Include(tc => tc.Tests)
-                .FirstOrDefaultAsync(tc => tc.TestCategoryId == TestCategoryId);
+                .FirstOrDefaultAsync(tc => tc.TestCategoryId == model.TestCategoryId);
             if (category == null) return NotFound();
 
-            test.Name = TestTitleSanitizer.Clean(Name);
-            test.ScopeStatus = ScopeStatus;
-            test.ExecutionStatus = ExecutionStatus;
-            test.Production = Production ?? "";
-            test.Comments = Comments ?? "";
-            test.VideoURL = VideoURL ?? "";
+            test.Name = TestTitleSanitizer.Clean(model.Name);
+            test.ScopeStatus = model.ScopeStatus;
+            test.ExecutionStatus = model.ExecutionStatus;
+            test.Production = model.Production ?? "";
+            test.Comments = model.Comments ?? "";
 
-            if (ExecutionStatus != Models.ExecutionStatus.NotRun)
+            if (removeMedia)
+            {
+                DeleteMediaFile(test.MediaUrl);
+                test.MediaUrl = null;
+            }
+
+            if (mediaFile != null && mediaFile.Length > 0)
+            {
+                var uploadResult = await SaveMediaFileAsync(mediaFile);
+                if (!uploadResult.Succeeded)
+                {
+                    ModelState.AddModelError("", uploadResult.ErrorMessage!);
+                    model.MediaUrl = test.MediaUrl;
+                    return View(model);
+                }
+
+                DeleteMediaFile(test.MediaUrl);
+                test.MediaUrl = uploadResult.MediaUrl;
+            }
+
+            if (model.ExecutionStatus != Models.ExecutionStatus.NotRun)
             {
                 if (previousStatus == Models.ExecutionStatus.NotRun || !test.ExecutedAt.HasValue)
                 {
@@ -75,8 +110,8 @@ namespace TestPlanManager.Controllers
 
             _ctx.Tests.Update(test);
             await _ctx.SaveChangesAsync();
-            var detailsUrl = Url.Action("Details", new { id = TestCategoryId });
-            return Redirect($"{detailsUrl}#test-{TestId}");
+            var detailsUrl = Url.Action("Details", new { id = model.TestCategoryId });
+            return Redirect($"{detailsUrl}#test-{model.TestId}");
         }
 
         [HttpGet]
@@ -90,7 +125,8 @@ namespace TestPlanManager.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateTest(Test model)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateTest(Test model, IFormFile? mediaFile)
         {
             if (string.IsNullOrWhiteSpace(model.Name) || string.IsNullOrWhiteSpace(model.Description))
             {
@@ -103,7 +139,19 @@ namespace TestPlanManager.Controllers
             model.ScopeStatus = model.ScopeStatus == 0 ? ScopeStatus.InScope : model.ScopeStatus;
             model.Production = model.Production ?? "";
             model.Comments = model.Comments ?? "";
-            model.VideoURL = model.VideoURL ?? "";
+            model.MediaUrl = model.MediaUrl ?? "";
+
+            if (mediaFile != null && mediaFile.Length > 0)
+            {
+                var uploadResult = await SaveMediaFileAsync(mediaFile);
+                if (!uploadResult.Succeeded)
+                {
+                    ModelState.AddModelError("", uploadResult.ErrorMessage!);
+                    return View(model);
+                }
+
+                model.MediaUrl = uploadResult.MediaUrl;
+            }
 
             _ctx.Tests.Add(model);
             await _ctx.SaveChangesAsync();
@@ -111,17 +159,74 @@ namespace TestPlanManager.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = AppRoles.Admin)]
         public async Task<IActionResult> DeleteTest(int testId, int testCategoryId)
         {
             var test = await _ctx.Tests.FindAsync(testId);
             if (test == null) return NotFound();
 
+            DeleteMediaFile(test.MediaUrl);
             _ctx.Tests.Remove(test);
             await _ctx.SaveChangesAsync();
             return RedirectToAction("Details", new { id = testCategoryId });
         }
 
+        private async Task<(bool Succeeded, string? MediaUrl, string? ErrorMessage)> SaveMediaFileAsync(IFormFile mediaFile)
+        {
+            if (mediaFile.Length > MaxMediaFileSizeBytes)
+            {
+                return (false, null, "Media file is too large. Maximum allowed size is 50MB.");
+            }
+
+            var extension = Path.GetExtension(mediaFile.FileName);
+            if (string.IsNullOrWhiteSpace(extension) || !AllowedMediaExtensions.Contains(extension))
+            {
+                return (false, null, "Unsupported file type. Allowed formats: JPG, PNG, GIF, WEBP, BMP, MP4, WEBM, MOV, AVI.");
+            }
+
+            var webRoot = _environment.WebRootPath;
+            if (string.IsNullOrWhiteSpace(webRoot))
+            {
+                webRoot = Path.Combine(_environment.ContentRootPath, "wwwroot");
+            }
+
+            var targetDirectory = Path.Combine(webRoot, "uploads", "test-media");
+            Directory.CreateDirectory(targetDirectory);
+
+            var fileName = $"{Guid.NewGuid():N}{extension.ToLowerInvariant()}";
+            var filePath = Path.Combine(targetDirectory, fileName);
+
+            await using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await mediaFile.CopyToAsync(stream);
+            }
+
+            return (true, $"/uploads/test-media/{fileName}", null);
+        }
+
+        private void DeleteMediaFile(string? mediaUrl)
+        {
+            if (string.IsNullOrWhiteSpace(mediaUrl) || !mediaUrl.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            var webRoot = _environment.WebRootPath;
+            if (string.IsNullOrWhiteSpace(webRoot))
+            {
+                webRoot = Path.Combine(_environment.ContentRootPath, "wwwroot");
+            }
+
+            var relativePath = mediaUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+            var fullPath = Path.Combine(webRoot, relativePath);
+            if (System.IO.File.Exists(fullPath))
+            {
+                System.IO.File.Delete(fullPath);
+            }
+        }
+
         [HttpPost]
+        [Authorize(Roles = AppRoles.Admin)]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteCategory(int id)
         {
@@ -144,6 +249,7 @@ namespace TestPlanManager.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = AppRoles.Admin)]
         public async Task<IActionResult> EditCategory(int id, string? returnUrl)
         {
             var category = await _ctx.TestCategories
@@ -174,6 +280,7 @@ namespace TestPlanManager.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = AppRoles.Admin)]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditCategory(EditCategoryInputModel model)
         {
@@ -210,6 +317,7 @@ namespace TestPlanManager.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = AppRoles.Admin)]
         public async Task<IActionResult> CreateCategory(int sprintId, string? returnUrl)
         {
             var sprint = await _ctx.Sprints.FindAsync(sprintId);
@@ -234,6 +342,7 @@ namespace TestPlanManager.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = AppRoles.Admin)]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateCategory(CreateCategoryInputModel model)
         {

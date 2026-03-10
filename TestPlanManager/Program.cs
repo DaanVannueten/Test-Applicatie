@@ -1,11 +1,41 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
+using TestPlanManager.Data;
+using TestPlanManager.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // configure EF Core DbContext
 builder.Services.AddDbContext<TestPlanManager.Data.TestPlanContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services
+    .AddIdentity<ApplicationUser, IdentityRole>(options =>
+    {
+        options.Password.RequireDigit = true;
+        options.Password.RequireLowercase = true;
+        options.Password.RequireUppercase = true;
+        options.Password.RequireNonAlphanumeric = false;
+        options.Password.RequiredLength = 8;
+        options.User.RequireUniqueEmail = true;
+    })
+    .AddEntityFrameworkStores<TestPlanContext>()
+    .AddDefaultTokenProviders();
+
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/Account/Login";
+    options.AccessDeniedPath = "/Account/AccessDenied";
+});
+
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
@@ -19,8 +49,10 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
-    var ctx = scope.ServiceProvider.GetRequiredService<TestPlanManager.Data.TestPlanContext>();
-    var tests = ctx.Tests.ToList();
+    var services = scope.ServiceProvider;
+    var ctx = services.GetRequiredService<TestPlanManager.Data.TestPlanContext>();
+    await ctx.Database.MigrateAsync();
+    var tests = await ctx.Tests.ToListAsync();
     var hasChanges = false;
 
     foreach (var test in tests)
@@ -35,8 +67,10 @@ using (var scope = app.Services.CreateScope())
 
     if (hasChanges)
     {
-        ctx.SaveChanges();
+        await ctx.SaveChangesAsync();
     }
+
+    await IdentitySeeder.SeedAsync(services);
 }
 
 // Configure the HTTP request pipeline.
@@ -53,33 +87,29 @@ if (!app.Environment.IsDevelopment())
 }
 app.UseRouting();
 
+app.UseStaticFiles();
+app.UseAuthentication();
 app.UseAuthorization();
-
-app.MapStaticAssets();
 
 // Test category routes with clean URLs
 app.MapControllerRoute(
     name: "test-edit",
     pattern: "test-categories/{id:int}/edit",
-    defaults: new { controller = "TestCategoryMvc", action = "EditTest" })
-    .WithStaticAssets();
+    defaults: new { controller = "TestCategoryMvc", action = "EditTest" });
 
 app.MapControllerRoute(
     name: "test-create",
     pattern: "test-categories/{testCategoryId:int}/tests/new",
-    defaults: new { controller = "TestCategoryMvc", action = "CreateTest" })
-    .WithStaticAssets();
+    defaults: new { controller = "TestCategoryMvc", action = "CreateTest" });
 
 app.MapControllerRoute(
     name: "test-category-details",
     pattern: "test-categories/{id:int}",
-    defaults: new { controller = "TestCategoryMvc", action = "Details" })
-    .WithStaticAssets();
+    defaults: new { controller = "TestCategoryMvc", action = "Details" });
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}")
-    .WithStaticAssets();
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Lifetime.ApplicationStarted.Register(() =>
 {

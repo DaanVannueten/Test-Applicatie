@@ -10,7 +10,7 @@
         <a class="btn btn-sm btn-outline-primary" asp-controller="TestPlanVersion" asp-action="Index">
             <i class="bi bi-diagram-3 me-1"></i>Go to Versions
         </a>
-        <span class="badge bg-secondary">Version: @(Model.SelectedBuildNr.HasValue ? $"Build {Model.SelectedBuildNr.Value}" : "No version")</span>
+        <span class="badge bg-secondary">Version: @(!string.IsNullOrWhiteSpace(Model.SelectedBuildNr) ? $"Build {Model.SelectedBuildNr}" : "No version")</span>
     </div>
 </div>
 

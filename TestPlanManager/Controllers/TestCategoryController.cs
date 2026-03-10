@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TestPlanManager.Data;
@@ -6,6 +7,7 @@ using TestPlanManager.Models;
 namespace TestPlanManager.Controllers
 {
     [ApiController]
+    [Authorize]
     [Route("api/[controller]")]
     public class TestCategoryController : ControllerBase
     {
@@ -47,6 +49,7 @@ namespace TestPlanManager.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = AppRoles.Admin)]
         public async Task<IActionResult> Create(TestCategory cat)
         {
             _ctx.TestCategories.Add(cat);

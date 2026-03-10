@@ -25,9 +25,11 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <form asp-action="EditTest" asp-controller="TestCategoryMvc" method="post">
+                    <form asp-action="EditTest" asp-controller="TestCategoryMvc" method="post" enctype="multipart/form-data">
+                        @Html.AntiForgeryToken()
                         <input type="hidden" asp-for="TestId" />
                         <input type="hidden" asp-for="TestCategoryId" />
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
                         <div class="mb-4">
                             <label asp-for="Name" class="form-label"><i class="bi bi-type me-2 text-primary"></i>Name</label>
@@ -69,9 +71,31 @@
                         </div>
 
                         <div class="mb-4">
-                            <label asp-for="VideoURL" class="form-label"><i class="bi bi-film me-2 text-primary"></i>Video URL</label>
-                            <input asp-for="VideoURL" class="form-control" type="url" placeholder="https://example.com/video" />
+                            <label class="form-label"><i class="bi bi-images me-2 text-primary"></i>Media Upload (photo/video)</label>
+                            <input name="mediaFile" class="form-control" type="file" accept="image/*,video/*" />
+                            <div class="form-text">Allowed: JPG, PNG, GIF, WEBP, BMP, MP4, WEBM, MOV, AVI. Max 50MB.</div>
                         </div>
+
+                        @if (!string.IsNullOrWhiteSpace(Model.MediaUrl))
+                        {
+                            <div class="mb-4">
+                                <label class="form-label">Current Media</label>
+                                @if (Model.MediaUrl.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase) || Model.MediaUrl.EndsWith(".webm", StringComparison.OrdinalIgnoreCase) || Model.MediaUrl.EndsWith(".mov", StringComparison.OrdinalIgnoreCase) || Model.MediaUrl.EndsWith(".avi", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <video controls class="w-100 rounded" style="max-height: 340px; object-fit: contain; background: #0f172a;">
+                                        <source src="@Model.MediaUrl" />
+                                    </video>
+                                }
+                                else
+                                {
+                                    <img src="@Model.MediaUrl" alt="Test media" class="img-fluid rounded border" style="max-height: 340px; object-fit: contain;" />
+                                }
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" id="removeMedia" name="removeMedia" value="true" />
+                                    <label class="form-check-label" for="removeMedia">Remove current media</label>
+                                </div>
+                            </div>
+                        }
 
                         <div class="d-flex gap-2 pt-3 border-top">
                             <button type="submit" class="btn btn-primary btn-lg">

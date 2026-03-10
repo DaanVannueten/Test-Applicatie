@@ -6,6 +6,9 @@
 
 <div class="d-flex justify-content-between align-items-center mt-3 mb-3">
     <h4 class="mb-0">Test Plan Versions</h4>
+    <a class="btn btn-sm btn-outline-secondary" asp-action="Archived" asp-controller="TestPlanVersion">
+        <i class="bi bi-archive me-1"></i>View Archived Builds
+    </a>
 </div>
 
 @if (TempData["SuccessMessage"] is string successMessage)
@@ -24,6 +27,8 @@
     </div>
 }
 
+@if (!Model.ShowArchived)
+{
 <div class="row g-3 mb-4">
     <div class="col-md-4">
         <div class="card h-100">
@@ -32,7 +37,7 @@
                 <form method="post" asp-action="Create" asp-controller="TestPlanVersion">
                     @Html.AntiForgeryToken()
                     <div class="input-group">
-                        <input type="number" min="1" name="BuildNr" class="form-control" placeholder="Build number" required />
+                        <input type="text" name="BuildNr" class="form-control" placeholder="Build number (e.g. 2026A or R1.2)" required />
                         <button type="submit" class="btn btn-primary">Create</button>
                     </div>
                 </form>
@@ -47,7 +52,7 @@
                     @Html.AntiForgeryToken()
                     <div class="row g-2">
                         <div class="col-md-4">
-                            <input type="number" min="1" name="BuildNr" class="form-control" placeholder="New build number" required />
+                            <input type="text" name="BuildNr" class="form-control" placeholder="New build number" required />
                         </div>
                         <div class="col-md-5">
                             <select name="CopyFromSprintId" class="form-select" required>
@@ -67,6 +72,7 @@
         </div>
     </div>
 </div>
+}
 
 <div class="table-responsive">
     <table class="table dashboard-table">
@@ -110,6 +116,22 @@
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="sprintId" value="@version.SprintId" />
                                         <button type="submit" class="btn btn-sm btn-outline-primary">Set as Default</button>
+                                    </form>
+                                }
+                                @if (!Model.ShowArchived)
+                                {
+                                    <form method="post" asp-action="Archive" asp-controller="TestPlanVersion" onsubmit="return confirm('Archive this build? It will be hidden from the active versions list.');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="sprintId" value="@version.SprintId" />
+                                        <button type="submit" class="btn btn-sm btn-outline-warning">Archive</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <form method="post" asp-action="Restore" asp-controller="TestPlanVersion">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="sprintId" value="@version.SprintId" />
+                                        <button type="submit" class="btn btn-sm btn-outline-success">Restore</button>
                                     </form>
                                 }
                                 <form method="post" asp-action="Delete" asp-controller="TestPlanVersion" onsubmit="return confirm('This version and all underlying tests will be deleted. Continue?');">

@@ -1,11 +1,13 @@
 using System.Diagnostics;
 using System.Linq;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TestPlanManager.Models;
 
 namespace TestPlanManager.Controllers;
 
+[Authorize]
 public class HomeController : Controller
 {
     private readonly TestPlanManager.Data.TestPlanContext _ctx;
@@ -27,9 +29,10 @@ public class HomeController : Controller
     public async Task<IActionResult> Index(int? sprintId)
     {
         var sprints = await _ctx.Sprints
+            .Where(s => !s.IsArchived)
             .Include(s => s.TestCategories)
             .ThenInclude(tc => tc.Tests)
-            .OrderByDescending(s => s.BuildNr)
+            .OrderByDescending(s => s.SprintId)
             .ToListAsync();
 
         var defaultSprintId = _defaultVersionStore.GetDefaultSprintId();
@@ -71,7 +74,7 @@ public class HomeController : Controller
             TestCategoryId = tc.TestCategoryId,
             Name = tc.Name,
             Description = tc.Description,
-            BuildNr = selectedSprint?.BuildNr ?? 0,
+            BuildNr = selectedSprint?.BuildNr ?? string.Empty,
             Department = tc.Department,
 
             Passed = tc.Passed,
@@ -97,11 +100,12 @@ public class HomeController : Controller
     }
 
     [HttpPost]
+    [Authorize(Roles = AppRoles.Admin)]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ResetAllTests(int? sprintId)
     {
         var targetSprintId = sprintId ?? await _ctx.Sprints
-            .OrderByDescending(s => s.BuildNr)
+            .OrderByDescending(s => s.SprintId)
             .Select(s => (int?)s.SprintId)
             .FirstOrDefaultAsync();
 

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TestPlanManager.Data;
@@ -6,6 +7,7 @@ using TestPlanManager.Models;
 namespace TestPlanManager.Controllers
 {
     [ApiController]
+    [Authorize]
     [Route("api/[controller]")]
     public class TestController : ControllerBase
     {
@@ -20,6 +22,7 @@ namespace TestPlanManager.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = AppRoles.Admin)]
         public async Task<IActionResult> Create(Test test)
         {
             _ctx.Tests.Add(test);
@@ -43,7 +46,7 @@ namespace TestPlanManager.Controllers
             t.ExecutionStatus = dto.ExecutionStatus;
             t.Production = dto.Production ?? "";
             t.Comments = dto.Comments;
-            t.VideoURL = dto.VideoURL;
+            t.MediaUrl = dto.MediaUrl ?? dto.VideoURL;
 
             if (dto.ExecutionStatus != ExecutionStatus.NotRun)
             {
@@ -71,6 +74,7 @@ namespace TestPlanManager.Controllers
             public ExecutionStatus ExecutionStatus { get; set; }
             public string? Production { get; set; }
             public string? Comments { get; set; }
+            public string? MediaUrl { get; set; }
             public string? VideoURL { get; set; }
         }
     }

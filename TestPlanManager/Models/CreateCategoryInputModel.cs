@@ -18,7 +18,7 @@ namespace TestPlanManager.Models
         [Range(1, int.MaxValue, ErrorMessage = "Order must be at least 1.")]
         public int Sequence { get; set; } = 1;
 
-        public int BuildNr { get; set; }
+        public string BuildNr { get; set; } = string.Empty;
 
         public string? ReturnUrl { get; set; }
     }

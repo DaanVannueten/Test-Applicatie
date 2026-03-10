@@ -144,6 +144,7 @@
                             <th style="width:180px">MODULE</th>
                             <th style="width:140px">TYPE</th>
                             <th style="width:140px">STATUS</th>
+                            <th style="width:150px">MEDIA</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -155,6 +156,22 @@
                                 <td><small class="text-muted">@Model.Department</small></td>
                                 <td><span class="badge @GetBadgeClass(t.ScopeStatus)">@t.ScopeStatus</span></td>
                                 <td><span class="badge @GetBadgeClass(t.ExecutionStatus)">@t.ExecutionStatus</span></td>
+                                <td>
+                                    @if (!string.IsNullOrWhiteSpace(t.MediaUrl))
+                                    {
+                                        <a class="btn btn-sm btn-outline-primary"
+                                           href="@t.MediaUrl"
+                                           target="_blank"
+                                           rel="noopener"
+                                           onclick="event.stopPropagation();">
+                                            <i class="bi bi-eye me-1"></i>View Media
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">No media</span>
+                                    }
+                                </td>
                             </tr>
                         }
                     </tbody>

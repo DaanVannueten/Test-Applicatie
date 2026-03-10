@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TestPlanManager.Data;
@@ -5,6 +6,7 @@ using TestPlanManager.Models;
 
 namespace TestPlanManager.Controllers
 {
+    [Authorize(Roles = AppRoles.Admin)]
     public class TestPlanVersionController : Controller
     {
         private readonly TestPlanContext _ctx;
@@ -21,12 +23,14 @@ namespace TestPlanManager.Controllers
             var defaultSprintId = _defaultVersionStore.GetDefaultSprintId();
 
             var versions = await _ctx.Sprints
+                .Where(s => !s.IsArchived)
                 .Include(s => s.TestCategories)
                 .ThenInclude(tc => tc.Tests)
                 .Select(s => new TestPlanVersionDto
                 {
                     SprintId = s.SprintId,
                     BuildNr = s.BuildNr,
+                    IsArchived = s.IsArchived,
                     CategoryCount = s.TestCategories.Count,
                     TestCount = s.TestCategories.Sum(tc => tc.Tests.Count),
                     LastExecutionDate = s.TestCategories
@@ -35,21 +39,55 @@ namespace TestPlanManager.Controllers
                         .OrderByDescending(d => d)
                         .FirstOrDefault()
                 })
-                .OrderBy(v => v.BuildNr)
+                .OrderByDescending(v => v.SprintId)
                 .ToListAsync();
 
             if (defaultSprintId.HasValue)
             {
                 versions = versions
                     .OrderBy(v => v.SprintId == defaultSprintId.Value ? 0 : 1)
-                    .ThenBy(v => v.BuildNr)
+                    .ThenByDescending(v => v.SprintId)
                     .ToList();
             }
 
             var vm = new TestPlanVersionPageViewModel
             {
                 Versions = versions,
-                DefaultSprintId = defaultSprintId
+                DefaultSprintId = defaultSprintId,
+                ShowArchived = false
+            };
+
+            return View(vm);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Archived()
+        {
+            var versions = await _ctx.Sprints
+                .Where(s => s.IsArchived)
+                .Include(s => s.TestCategories)
+                .ThenInclude(tc => tc.Tests)
+                .Select(s => new TestPlanVersionDto
+                {
+                    SprintId = s.SprintId,
+                    BuildNr = s.BuildNr,
+                    IsArchived = s.IsArchived,
+                    CategoryCount = s.TestCategories.Count,
+                    TestCount = s.TestCategories.Sum(tc => tc.Tests.Count),
+                    LastExecutionDate = s.TestCategories
+                        .Where(tc => tc.TestDate.HasValue)
+                        .Select(tc => tc.TestDate)
+                        .OrderByDescending(d => d)
+                        .FirstOrDefault()
+                })
+                .OrderByDescending(v => v.SprintId)
+                .ToListAsync();
+
+            var vm = new TestPlanVersionPageViewModel
+            {
+                Versions = versions,
+                DefaultSprintId = _defaultVersionStore.GetDefaultSprintId(),
+                ShowArchived = true
             };
 
             return View(vm);
@@ -65,7 +103,9 @@ namespace TestPlanManager.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            var buildNrExists = await _ctx.Sprints.AnyAsync(s => s.BuildNr == input.BuildNr);
+            input.BuildNr = input.BuildNr.Trim();
+
+            var buildNrExists = await _ctx.Sprints.AnyAsync(s => s.BuildNr.ToLower() == input.BuildNr.ToLower());
             if (buildNrExists)
             {
                 TempData["ErrorMessage"] = $"Build {input.BuildNr} already exists.";
@@ -94,7 +134,9 @@ namespace TestPlanManager.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            var buildNrExists = await _ctx.Sprints.AnyAsync(s => s.BuildNr == input.BuildNr);
+            input.BuildNr = input.BuildNr.Trim();
+
+            var buildNrExists = await _ctx.Sprints.AnyAsync(s => s.BuildNr.ToLower() == input.BuildNr.ToLower());
             if (buildNrExists)
             {
                 TempData["ErrorMessage"] = $"Build {input.BuildNr} already exists.";
@@ -143,7 +185,7 @@ namespace TestPlanManager.Controllers
                         ScopeStatus = sourceTest.ScopeStatus,
                         ExecutionStatus = ExecutionStatus.NotRun,
                         Comments = string.Empty,
-                        VideoURL = string.Empty,
+                        MediaUrl = string.Empty,
                         Production = string.Empty
                     }).ToList()
                 };
@@ -161,10 +203,16 @@ namespace TestPlanManager.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SetDefault(int sprintId)
         {
-            var sprintExists = await _ctx.Sprints.AnyAsync(s => s.SprintId == sprintId);
-            if (!sprintExists)
+            var sprint = await _ctx.Sprints.FirstOrDefaultAsync(s => s.SprintId == sprintId);
+            if (sprint == null)
             {
                 TempData["ErrorMessage"] = "Version not found.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (sprint.IsArchived)
+            {
+                TempData["ErrorMessage"] = "Archived versions cannot be set as default.";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -191,7 +239,8 @@ namespace TestPlanManager.Controllers
             if (currentDefaultSprintId == sprintId)
             {
                 var fallbackSprintId = await _ctx.Sprints
-                    .OrderByDescending(s => s.BuildNr)
+                    .Where(s => !s.IsArchived)
+                    .OrderByDescending(s => s.SprintId)
                     .Select(s => (int?)s.SprintId)
                     .FirstOrDefaultAsync();
 
@@ -200,6 +249,54 @@ namespace TestPlanManager.Controllers
 
             TempData["SuccessMessage"] = $"Build {sprint.BuildNr} has been deleted.";
             return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Archive(int sprintId)
+        {
+            var sprint = await _ctx.Sprints.FindAsync(sprintId);
+            if (sprint == null)
+            {
+                TempData["ErrorMessage"] = "Version not found.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            sprint.IsArchived = true;
+            await _ctx.SaveChangesAsync();
+
+            var currentDefaultSprintId = _defaultVersionStore.GetDefaultSprintId();
+            if (currentDefaultSprintId == sprintId)
+            {
+                var fallbackSprintId = await _ctx.Sprints
+                    .Where(s => !s.IsArchived)
+                    .OrderByDescending(s => s.SprintId)
+                    .Select(s => (int?)s.SprintId)
+                    .FirstOrDefaultAsync();
+
+                _defaultVersionStore.SetDefaultSprintId(fallbackSprintId);
+            }
+
+            TempData["SuccessMessage"] = $"Build {sprint.BuildNr} has been archived.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Restore(int sprintId)
+        {
+            var sprint = await _ctx.Sprints.FindAsync(sprintId);
+            if (sprint == null)
+            {
+                TempData["ErrorMessage"] = "Version not found.";
+                return RedirectToAction(nameof(Archived));
+            }
+
+            sprint.IsArchived = false;
+            await _ctx.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = $"Build {sprint.BuildNr} has been restored.";
+            return RedirectToAction(nameof(Archived));
         }
     }
 }

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TestPlanManager.Data;
 
@@ -10,9 +11,11 @@ using TestPlanManager.Data;
 namespace TestPlanManager.Migrations
 {
     [DbContext(typeof(TestPlanContext))]
-    partial class TestPlanContextModelSnapshot : ModelSnapshot
+    [Migration("20260310103049_AllowAlphaNumericBuildNr")]
+    partial class AllowAlphaNumericBuildNr
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.3");
@@ -220,9 +223,6 @@ namespace TestPlanManager.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
-                    b.Property<bool>("IsArchived")
-                        .HasColumnType("INTEGER");
-
                     b.HasKey("SprintId");
 
                     b.ToTable("Sprints");
@@ -248,9 +248,6 @@ namespace TestPlanManager.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("MediaUrl")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -265,6 +262,9 @@ namespace TestPlanManager.Migrations
 
                     b.Property<int>("TestCategoryId")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("VideoURL")
+                        .HasColumnType("TEXT");
 
                     b.HasKey("TestId");
 
