@@ -6,11 +6,16 @@ using TestPlanManager.Models;
 
 namespace TestPlanManager.Controllers
 {
-    [Authorize(Roles = AppRoles.Admin)]
+    [Authorize]
     public class TestPlanVersionController : Controller
     {
         private readonly TestPlanContext _ctx;
         private readonly IDefaultVersionStore _defaultVersionStore;
+
+        private bool IsAdmin => User.IsInRole(AppRoles.Administrator);
+        private bool IsTestManager => User.IsInRole(AppRoles.TestManager);
+        private bool IsTester => User.IsInRole(AppRoles.Tester);
+        private bool IsManagerOrAdmin => IsAdmin || IsTestManager;
 
         public TestPlanVersionController(TestPlanContext ctx, IDefaultVersionStore defaultVersionStore)
         {
@@ -20,6 +25,11 @@ namespace TestPlanManager.Controllers
 
         public async Task<IActionResult> Index()
         {
+            if (!IsManagerOrAdmin && !IsTester)
+            {
+                return Forbid();
+            }
+
             var defaultSprintId = _defaultVersionStore.GetDefaultSprintId();
 
             var versions = await _ctx.Sprints
@@ -31,24 +41,24 @@ namespace TestPlanManager.Controllers
                     SprintId = s.SprintId,
                     BuildNr = s.BuildNr,
                     IsArchived = s.IsArchived,
+                    IsTemplate = s.IsTemplate,
+                    SourceTemplateSprintId = s.SourceTemplateSprintId,
                     CategoryCount = s.TestCategories.Count,
                     TestCount = s.TestCategories.Sum(tc => tc.Tests.Count),
                     LastExecutionDate = s.TestCategories
                         .Where(tc => tc.TestDate.HasValue)
                         .Select(tc => tc.TestDate)
                         .OrderByDescending(d => d)
+                        .FirstOrDefault(),
+                    LastWorkedBy = s.TestCategories
+                        .SelectMany(tc => tc.Tests)
+                        .Where(t => t.ExecutionStatus != ExecutionStatus.NotRun && t.ExecutedAt.HasValue)
+                        .OrderByDescending(t => t.ExecutedAt)
+                        .Select(t => t.LastExecutedBy)
                         .FirstOrDefault()
                 })
                 .OrderByDescending(v => v.SprintId)
                 .ToListAsync();
-
-            if (defaultSprintId.HasValue)
-            {
-                versions = versions
-                    .OrderBy(v => v.SprintId == defaultSprintId.Value ? 0 : 1)
-                    .ThenByDescending(v => v.SprintId)
-                    .ToList();
-            }
 
             var vm = new TestPlanVersionPageViewModel
             {
@@ -63,6 +73,11 @@ namespace TestPlanManager.Controllers
         [HttpGet]
         public async Task<IActionResult> Archived()
         {
+            if (!IsManagerOrAdmin)
+            {
+                return Forbid();
+            }
+
             var versions = await _ctx.Sprints
                 .Where(s => s.IsArchived)
                 .Include(s => s.TestCategories)
@@ -72,12 +87,20 @@ namespace TestPlanManager.Controllers
                     SprintId = s.SprintId,
                     BuildNr = s.BuildNr,
                     IsArchived = s.IsArchived,
+                    IsTemplate = s.IsTemplate,
+                    SourceTemplateSprintId = s.SourceTemplateSprintId,
                     CategoryCount = s.TestCategories.Count,
                     TestCount = s.TestCategories.Sum(tc => tc.Tests.Count),
                     LastExecutionDate = s.TestCategories
                         .Where(tc => tc.TestDate.HasValue)
                         .Select(tc => tc.TestDate)
                         .OrderByDescending(d => d)
+                        .FirstOrDefault(),
+                    LastWorkedBy = s.TestCategories
+                        .SelectMany(tc => tc.Tests)
+                        .Where(t => t.ExecutionStatus != ExecutionStatus.NotRun && t.ExecutedAt.HasValue)
+                        .OrderByDescending(t => t.ExecutedAt)
+                        .Select(t => t.LastExecutedBy)
                         .FirstOrDefault()
                 })
                 .OrderByDescending(v => v.SprintId)
@@ -97,6 +120,11 @@ namespace TestPlanManager.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CreateVersionInputModel input)
         {
+            if (!IsManagerOrAdmin)
+            {
+                return Forbid();
+            }
+
             if (!ModelState.IsValid)
             {
                 TempData["ErrorMessage"] = "New build number is invalid.";
@@ -114,13 +142,16 @@ namespace TestPlanManager.Controllers
 
             var sprint = new Sprint
             {
-                BuildNr = input.BuildNr
+                BuildNr = input.BuildNr,
+                IsTemplate = input.IsTemplate
             };
 
             _ctx.Sprints.Add(sprint);
             await _ctx.SaveChangesAsync();
 
-            TempData["SuccessMessage"] = $"Empty build {input.BuildNr} has been created.";
+            TempData["SuccessMessage"] = input.IsTemplate
+                ? $"Template version {input.BuildNr} has been created."
+                : $"Empty test cycle {input.BuildNr} has been created.";
             return RedirectToAction(nameof(Index));
         }
 
@@ -128,6 +159,11 @@ namespace TestPlanManager.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Copy(CopyVersionInputModel input)
         {
+            if (!IsManagerOrAdmin && !IsTester)
+            {
+                return Forbid();
+            }
+
             if (!ModelState.IsValid)
             {
                 TempData["ErrorMessage"] = "Enter a valid build number and source version.";
@@ -154,9 +190,17 @@ namespace TestPlanManager.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
+            if (!sourceSprint.IsTemplate)
+            {
+                TempData["ErrorMessage"] = "New test cycles can only be created from a template version.";
+                return RedirectToAction(nameof(Index));
+            }
+
             var newSprint = new Sprint
             {
-                BuildNr = input.BuildNr
+                BuildNr = input.BuildNr,
+                IsTemplate = false,
+                SourceTemplateSprintId = sourceSprint.SprintId
             };
 
             _ctx.Sprints.Add(newSprint);
@@ -180,6 +224,8 @@ namespace TestPlanManager.Controllers
                     PercentagePassed = 0,
                     Tests = sourceCategory.Tests.Select(sourceTest => new Test
                     {
+                        TemplateTestCaseId = sourceTest.TestId,
+                        IsTemplateDerived = true,
                         Name = TestTitleSanitizer.Clean(sourceTest.Name),
                         Description = sourceTest.Description ?? string.Empty,
                         ScopeStatus = sourceTest.ScopeStatus,
@@ -195,7 +241,91 @@ namespace TestPlanManager.Controllers
 
             await _ctx.SaveChangesAsync();
 
-            TempData["SuccessMessage"] = $"Build {input.BuildNr} has been created by copying build {sourceSprint.BuildNr}.";
+            TempData["SuccessMessage"] = $"Test cycle {input.BuildNr} has been created from template {sourceSprint.BuildNr}.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateTemplateFromCycle(CreateTemplateFromCycleInputModel input)
+        {
+            if (!IsManagerOrAdmin)
+            {
+                return Forbid();
+            }
+
+            if (!ModelState.IsValid)
+            {
+                TempData["ErrorMessage"] = "Enter a valid template name and source cycle.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            input.BuildNr = input.BuildNr.Trim();
+
+            var buildNrExists = await _ctx.Sprints.AnyAsync(s => s.BuildNr.ToLower() == input.BuildNr.ToLower());
+            if (buildNrExists)
+            {
+                TempData["ErrorMessage"] = $"Build {input.BuildNr} already exists.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var sourceCycle = await _ctx.Sprints
+                .Include(s => s.TestCategories)
+                .ThenInclude(tc => tc.Tests)
+                .FirstOrDefaultAsync(s => s.SprintId == input.SourceCycleSprintId!.Value);
+
+            if (sourceCycle == null || sourceCycle.IsTemplate)
+            {
+                TempData["ErrorMessage"] = "Select a valid source cycle (non-template).";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var newTemplate = new Sprint
+            {
+                BuildNr = input.BuildNr,
+                IsTemplate = true,
+                SourceTemplateSprintId = null
+            };
+
+            _ctx.Sprints.Add(newTemplate);
+            await _ctx.SaveChangesAsync();
+
+            foreach (var sourceCategory in sourceCycle.TestCategories.OrderBy(tc => tc.Sequence))
+            {
+                var copiedCategory = new TestCategory
+                {
+                    SprintId = newTemplate.SprintId,
+                    Name = sourceCategory.Name,
+                    Description = sourceCategory.Description,
+                    Sequence = sourceCategory.Sequence,
+                    Department = sourceCategory.Department,
+                    TestDate = null,
+                    TotalTest = 0,
+                    OutOfScope = 0,
+                    Failed = 0,
+                    Blocked = 0,
+                    Passed = 0,
+                    PercentagePassed = 0,
+                    Tests = sourceCategory.Tests.Select(sourceTest => new Test
+                    {
+                        Name = TestTitleSanitizer.Clean(sourceTest.Name),
+                        Description = sourceTest.Description ?? string.Empty,
+                        ScopeStatus = sourceTest.ScopeStatus,
+                        ExecutionStatus = ExecutionStatus.NotRun,
+                        Comments = string.Empty,
+                        MediaUrl = sourceTest.MediaUrl,
+                        Production = sourceTest.Production,
+                        IsTemplateDerived = false,
+                        TemplateTestCaseId = null
+                    }).ToList()
+                };
+
+                _ctx.TestCategories.Add(copiedCategory);
+            }
+
+            await _ctx.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = $"Template {input.BuildNr} has been created from cycle {sourceCycle.BuildNr}.";
             return RedirectToAction(nameof(Index));
         }
 
@@ -203,6 +333,11 @@ namespace TestPlanManager.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SetDefault(int sprintId)
         {
+            if (!IsManagerOrAdmin)
+            {
+                return Forbid();
+            }
+
             var sprint = await _ctx.Sprints.FirstOrDefaultAsync(s => s.SprintId == sprintId);
             if (sprint == null)
             {
@@ -216,6 +351,12 @@ namespace TestPlanManager.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
+            if (sprint.IsTemplate)
+            {
+                TempData["ErrorMessage"] = "Template versions cannot be set as dashboard default.";
+                return RedirectToAction(nameof(Index));
+            }
+
             _defaultVersionStore.SetDefaultSprintId(sprintId);
             TempData["SuccessMessage"] = "Default version has been updated.";
             return RedirectToAction(nameof(Index));
@@ -225,6 +366,11 @@ namespace TestPlanManager.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int sprintId)
         {
+            if (!IsManagerOrAdmin)
+            {
+                return Forbid();
+            }
+
             var sprint = await _ctx.Sprints.FindAsync(sprintId);
             if (sprint == null)
             {
@@ -255,6 +401,11 @@ namespace TestPlanManager.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Archive(int sprintId)
         {
+            if (!IsManagerOrAdmin)
+            {
+                return Forbid();
+            }
+
             var sprint = await _ctx.Sprints.FindAsync(sprintId);
             if (sprint == null)
             {
@@ -285,6 +436,11 @@ namespace TestPlanManager.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Restore(int sprintId)
         {
+            if (!IsManagerOrAdmin)
+            {
+                return Forbid();
+            }
+
             var sprint = await _ctx.Sprints.FindAsync(sprintId);
             if (sprint == null)
             {

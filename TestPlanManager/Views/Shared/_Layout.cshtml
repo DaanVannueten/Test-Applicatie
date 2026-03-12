@@ -18,43 +18,75 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+    @{
+        var canManageUsers = User.Identity?.IsAuthenticated == true
+            && User.IsInRole(TestPlanManager.Models.AppRoles.Administrator);
+
+        var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? string.Empty;
+        var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? string.Empty;
+        var currentPageLabel = currentController switch
+        {
+            "Home" => "Dashboard",
+            "TestPlanVersion" => "Versions and templates",
+            "TestCategoryMvc" => "Categories",
+            "UserManagement" => "User management",
+            "Account" when currentAction == "Login" => "Login",
+            "Account" => "Account",
+            _ => "Page"
+        };
+    }
     <header>
         <nav class="navbar navbar-expand-lg navbar-light border-bottom sticky-top" style="background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
             <div class="container-fluid px-4">
-                <a class="navbar-brand fw-bold d-flex align-items-center" asp-area="" asp-controller="Home" asp-action="GoToDefault" style="font-size: 1.4rem; color: #1e293b;">
+                <a class="navbar-brand fw-bold d-flex align-items-center" asp-area="" asp-controller="TestPlanVersion" asp-action="Index" style="font-size: 1.4rem; color: #1e293b;">
                     <i class="bi bi-clipboard2-check me-2" style="font-size: 1.8rem; color: #475569;"></i>
                     Test Plan Manager
                 </a>
-                <div class="navbar-collapse d-none d-lg-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1 ms-3">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavigation" aria-controls="mainNavigation" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse justify-content-between flex-wrap gap-2" id="mainNavigation">
+                    <ul class="navbar-nav flex-grow-1 ms-3 mt-2 mt-lg-0">
                         <li class="nav-item">
-                            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")" asp-area="" asp-controller="Home" asp-action="Index" style="color: #475569;"><i class="bi bi-graph-up me-1"></i>Dashboard</a>
+                            <a class="nav-link @(currentController == "TestPlanVersion" ? "active fw-semibold" : "")" asp-area="" asp-controller="TestPlanVersion" asp-action="Index" style="color: #475569;"><i class="bi bi-house-door me-1"></i>Home (Versions and templates)</a>
                         </li>
-                        @if (User.IsInRole(TestPlanManager.Models.AppRoles.Admin))
+                        @if (canManageUsers)
                         {
                             <li class="nav-item">
-                                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "TestPlanVersion" ? "active" : "")" asp-controller="TestPlanVersion" asp-action="Index" style="color: #475569;"><i class="bi bi-diagram-3 me-1"></i>Versions</a>
+                                <a class="nav-link @(currentController == "UserManagement" ? "active fw-semibold" : "")" asp-controller="UserManagement" asp-action="Index" style="color: #475569;"><i class="bi bi-people me-1"></i>User management</a>
                             </li>
                         }
-                        <li class="nav-item">
-                            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "TestCategoryMvc" ? "active" : "")" asp-controller="TestCategoryMvc" asp-action="Index" style="color: #475569;"><i class="bi bi-list-check me-1"></i>Categories</a>
+                        <li class="nav-item d-none d-lg-flex align-items-center ms-lg-3 text-muted small" aria-live="polite">
+                            <span><i class="bi bi-geo-alt me-1"></i>You are here: @currentPageLabel</span>
                         </li>
                     </ul>
-                    <ul class="navbar-nav align-items-lg-center">
+                    <ul class="navbar-nav align-items-lg-center mt-2 mt-lg-0">
                         @if (User.Identity?.IsAuthenticated == true)
                         {
                             <li class="nav-item me-2">
-                                <span class="nav-link" style="color: #475569;">
+                                <span class="nav-link current-user-pill">
                                     <i class="bi bi-person-circle me-1"></i>@User.Identity.Name
                                 </span>
                             </li>
-                            @if (User.IsInRole(TestPlanManager.Models.AppRoles.Admin))
+                            @if (User.IsInRole(TestPlanManager.Models.AppRoles.Administrator))
                             {
                                 <li class="nav-item me-2">
-                                    <span class="badge text-bg-warning">Admin</span>
+                                    <span class="badge text-bg-warning">Administrator</span>
                                 </li>
                             }
-                            <li class="nav-item">
+                            else if (User.IsInRole(TestPlanManager.Models.AppRoles.TestManager))
+                            {
+                                <li class="nav-item me-2">
+                                    <span class="badge text-bg-info">Test Manager</span>
+                                </li>
+                            }
+                            else if (User.IsInRole(TestPlanManager.Models.AppRoles.Tester))
+                            {
+                                <li class="nav-item me-2">
+                                    <span class="badge text-bg-secondary">Tester</span>
+                                </li>
+                            }
+                            <li class="nav-item ms-2">
                                 <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
                                     @Html.AntiForgeryToken()
                                     <button type="submit" class="btn btn-outline-secondary btn-sm">
@@ -67,9 +99,6 @@
                         {
                             <li class="nav-item me-2">
                                 <a class="btn btn-outline-primary btn-sm" asp-controller="Account" asp-action="Login">Login</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="btn btn-primary btn-sm" asp-controller="Account" asp-action="Register">Register</a>
                             </li>
                         }
                     </ul>

@@ -97,10 +97,13 @@ namespace TestPlanManager.Controllers
                 {
                     test.ExecutedAt = DateTime.UtcNow;
                 }
+
+                test.LastExecutedBy = User.Identity?.Name;
             }
             else
             {
                 test.ExecutedAt = null;
+                test.LastExecutedBy = null;
             }
 
             category.TestDate = category.Tests
@@ -155,11 +158,22 @@ namespace TestPlanManager.Controllers
 
             _ctx.Tests.Add(model);
             await _ctx.SaveChangesAsync();
+
+            var category = await _ctx.TestCategories
+                .Include(tc => tc.Sprint)
+                .FirstOrDefaultAsync(tc => tc.TestCategoryId == model.TestCategoryId);
+
+            if (category?.Sprint?.IsTemplate == true)
+            {
+                await SyncTemplateTestCaseToActiveCyclesAsync(category, model);
+            }
+
             return RedirectToAction("Details", new { id = model.TestCategoryId });
         }
 
         [HttpPost]
-        [Authorize(Roles = AppRoles.Admin)]
+        [Authorize(Roles = AppRoles.Managers)]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteTest(int testId, int testCategoryId)
         {
             var test = await _ctx.Tests.FindAsync(testId);
@@ -226,7 +240,7 @@ namespace TestPlanManager.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = AppRoles.Admin)]
+        [Authorize(Roles = AppRoles.Managers)]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteCategory(int id)
         {
@@ -249,7 +263,7 @@ namespace TestPlanManager.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = AppRoles.Admin)]
+        [Authorize(Roles = AppRoles.Managers)]
         public async Task<IActionResult> EditCategory(int id, string? returnUrl)
         {
             var category = await _ctx.TestCategories
@@ -280,7 +294,7 @@ namespace TestPlanManager.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = AppRoles.Admin)]
+        [Authorize(Roles = AppRoles.Managers)]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditCategory(EditCategoryInputModel model)
         {
@@ -317,7 +331,7 @@ namespace TestPlanManager.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = AppRoles.Admin)]
+        [Authorize(Roles = AppRoles.Managers)]
         public async Task<IActionResult> CreateCategory(int sprintId, string? returnUrl)
         {
             var sprint = await _ctx.Sprints.FindAsync(sprintId);
@@ -342,7 +356,7 @@ namespace TestPlanManager.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = AppRoles.Admin)]
+        [Authorize(Roles = AppRoles.Managers)]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateCategory(CreateCategoryInputModel model)
         {
@@ -379,12 +393,130 @@ namespace TestPlanManager.Controllers
             _ctx.TestCategories.Add(category);
             await _ctx.SaveChangesAsync();
 
+            if (sprint.IsTemplate)
+            {
+                await SyncTemplateCategoryToActiveCyclesAsync(sprint.SprintId, category);
+            }
+
             if (!string.IsNullOrWhiteSpace(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
             {
                 return LocalRedirect(model.ReturnUrl);
             }
 
             return RedirectToAction("Index", "Home", new { sprintId = model.SprintId });
+        }
+
+        private async Task SyncTemplateCategoryToActiveCyclesAsync(int templateSprintId, TestCategory templateCategory)
+        {
+            var activeCycleIds = await _ctx.Sprints
+                .Where(s => !s.IsArchived && !s.IsTemplate && s.SourceTemplateSprintId == templateSprintId)
+                .Select(s => s.SprintId)
+                .ToListAsync();
+
+            if (activeCycleIds.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var cycleId in activeCycleIds)
+            {
+                var exists = await _ctx.TestCategories.AnyAsync(tc =>
+                    tc.SprintId == cycleId &&
+                    tc.Name == templateCategory.Name &&
+                    tc.Sequence == templateCategory.Sequence);
+
+                if (exists)
+                {
+                    continue;
+                }
+
+                _ctx.TestCategories.Add(new TestCategory
+                {
+                    SprintId = cycleId,
+                    Name = templateCategory.Name,
+                    Description = templateCategory.Description,
+                    Department = templateCategory.Department,
+                    Sequence = templateCategory.Sequence,
+                    TotalTest = 0,
+                    OutOfScope = 0,
+                    Failed = 0,
+                    Blocked = 0,
+                    Passed = 0,
+                    PercentagePassed = 0,
+                    TestDate = null
+                });
+            }
+
+            await _ctx.SaveChangesAsync();
+        }
+
+        private async Task SyncTemplateTestCaseToActiveCyclesAsync(TestCategory templateCategory, Test templateTest)
+        {
+            var activeCycleIds = await _ctx.Sprints
+                .Where(s => !s.IsArchived && !s.IsTemplate && s.SourceTemplateSprintId == templateCategory.SprintId)
+                .Select(s => s.SprintId)
+                .ToListAsync();
+
+            if (activeCycleIds.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var cycleId in activeCycleIds)
+            {
+                var targetCategory = await _ctx.TestCategories
+                    .FirstOrDefaultAsync(tc =>
+                        tc.SprintId == cycleId &&
+                        tc.Name == templateCategory.Name &&
+                        tc.Sequence == templateCategory.Sequence);
+
+                if (targetCategory == null)
+                {
+                    targetCategory = new TestCategory
+                    {
+                        SprintId = cycleId,
+                        Name = templateCategory.Name,
+                        Description = templateCategory.Description,
+                        Department = templateCategory.Department,
+                        Sequence = templateCategory.Sequence,
+                        TotalTest = 0,
+                        OutOfScope = 0,
+                        Failed = 0,
+                        Blocked = 0,
+                        Passed = 0,
+                        PercentagePassed = 0,
+                        TestDate = null
+                    };
+
+                    _ctx.TestCategories.Add(targetCategory);
+                    await _ctx.SaveChangesAsync();
+                }
+
+                var exists = await _ctx.Tests.AnyAsync(t =>
+                    t.TestCategoryId == targetCategory.TestCategoryId &&
+                    t.TemplateTestCaseId == templateTest.TestId);
+
+                if (exists)
+                {
+                    continue;
+                }
+
+                _ctx.Tests.Add(new Test
+                {
+                    TestCategoryId = targetCategory.TestCategoryId,
+                    TemplateTestCaseId = templateTest.TestId,
+                    IsTemplateDerived = true,
+                    Name = templateTest.Name,
+                    Description = templateTest.Description,
+                    ScopeStatus = templateTest.ScopeStatus,
+                    ExecutionStatus = ExecutionStatus.NotRun,
+                    Comments = string.Empty,
+                    MediaUrl = templateTest.MediaUrl,
+                    Production = templateTest.Production
+                });
+            }
+
+            await _ctx.SaveChangesAsync();
         }
     }
 }

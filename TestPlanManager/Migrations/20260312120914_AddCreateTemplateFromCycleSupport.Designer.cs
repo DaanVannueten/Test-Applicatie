@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TestPlanManager.Data;
 
@@ -10,9 +11,11 @@ using TestPlanManager.Data;
 namespace TestPlanManager.Migrations
 {
     [DbContext(typeof(TestPlanContext))]
-    partial class TestPlanContextModelSnapshot : ModelSnapshot
+    [Migration("20260312120914_AddCreateTemplateFromCycleSupport")]
+    partial class AddCreateTemplateFromCycleSupport
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.3");
@@ -303,9 +306,6 @@ namespace TestPlanManager.Migrations
 
                     b.Property<bool>("IsTemplateDerived")
                         .HasColumnType("INTEGER");
-
-                    b.Property<string>("LastExecutedBy")
-                        .HasColumnType("TEXT");
 
                     b.Property<string>("MediaUrl")
                         .HasColumnType("TEXT");

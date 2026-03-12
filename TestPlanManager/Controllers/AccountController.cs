@@ -39,7 +39,7 @@ public class AccountController : Controller
             model.Email,
             model.Password,
             model.RememberMe,
-            lockoutOnFailure: false);
+            lockoutOnFailure: true);
 
         if (result.Succeeded)
         {
@@ -48,7 +48,13 @@ public class AccountController : Controller
                 return LocalRedirect(model.ReturnUrl);
             }
 
-            return RedirectToAction("Index", "Home");
+            return RedirectToAction("Index", "TestPlanVersion");
+        }
+
+        if (result.IsLockedOut)
+        {
+            ModelState.AddModelError(string.Empty, "Account is temporarily locked due to repeated failed sign-in attempts.");
+            return View(model);
         }
 
         ModelState.AddModelError(string.Empty, "Invalid login attempt.");
@@ -56,17 +62,23 @@ public class AccountController : Controller
     }
 
     [HttpGet]
-    [AllowAnonymous]
+    [Authorize(Roles = AppRoles.Administrator)]
     public IActionResult Register()
     {
-        return View(new RegisterViewModel());
+        return View(new RegisterViewModel { Role = AppRoles.Tester });
     }
 
     [HttpPost]
-    [AllowAnonymous]
+    [Authorize(Roles = AppRoles.Administrator)]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(RegisterViewModel model)
     {
+        model.Role = model.Role?.Trim() ?? string.Empty;
+        if (!AppRoles.All.Contains(model.Role, StringComparer.Ordinal))
+        {
+            ModelState.AddModelError(nameof(model.Role), "Select a valid role.");
+        }
+
         if (!ModelState.IsValid)
         {
             return View(model);
@@ -82,9 +94,20 @@ public class AccountController : Controller
         var result = await _userManager.CreateAsync(user, model.Password);
         if (result.Succeeded)
         {
-            await _userManager.AddToRoleAsync(user, AppRoles.User);
-            await _signInManager.SignInAsync(user, isPersistent: false);
-            return RedirectToAction("Index", "Home");
+            var roleResult = await _userManager.AddToRoleAsync(user, model.Role);
+            if (!roleResult.Succeeded)
+            {
+                await _userManager.DeleteAsync(user);
+                foreach (var roleError in roleResult.Errors)
+                {
+                    ModelState.AddModelError(string.Empty, roleError.Description);
+                }
+
+                return View(model);
+            }
+
+            TempData["SuccessMessage"] = $"User {model.Email} created with role {model.Role}.";
+            return RedirectToAction("Index", "UserManagement");
         }
 
         foreach (var error in result.Errors)

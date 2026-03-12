@@ -1,0 +1,79 @@
+@model TestPlanManager.Models.TemplateIndexPageViewModel
+@{
+    ViewData["Title"] = "Templates";
+    var canManageTemplates = User.IsInRole(TestPlanManager.Models.AppRoles.Administrator)
+        || User.IsInRole(TestPlanManager.Models.AppRoles.TestManager);
+}
+
+<div class="d-flex justify-content-between align-items-center mt-3 mb-3">
+    <h4 class="mb-0">Test Templates</h4>
+</div>
+
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert-success" role="alert">@successMessage</div>
+}
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert-danger" role="alert">@errorMessage</div>
+}
+
+@if (canManageTemplates)
+{
+    <div class="card mb-4">
+        <div class="card-body">
+            <h6 class="mb-3">Create Template</h6>
+            <form asp-action="Create" asp-controller="Template" method="post">
+                @Html.AntiForgeryToken()
+                <div class="row g-2">
+                    <div class="col-md-5">
+                        <input class="form-control" name="Name" placeholder="Template name (e.g. Regression Core)" required />
+                    </div>
+                    <div class="col-md-4">
+                        <input class="form-control" name="ProductName" placeholder="Product (e.g. Sesame, Mystore)" required />
+                    </div>
+                    <div class="col-md-3 d-grid">
+                        <button type="submit" class="btn btn-primary">Create Template</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+<div class="table-responsive">
+    <table class="table table-striped table-hover align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>Template</th>
+                <th>Product</th>
+                <th>Testcases</th>
+                <th>Active Cycles</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+        @if (!Model.Templates.Any())
+        {
+            <tr>
+                <td colspan="5" class="text-center text-muted py-4">No templates yet.</td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var template in Model.Templates)
+            {
+                <tr>
+                    <td>@template.Name</td>
+                    <td>@template.ProductName</td>
+                    <td>@template.TestCaseCount</td>
+                    <td>@template.ActiveCycleCount</td>
+                    <td>
+                        <a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@template.TestTemplateId">Open</a>
+                    </td>
+                </tr>
+            }
+        }
+        </tbody>
+    </table>
+</div>

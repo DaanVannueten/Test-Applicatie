@@ -28,7 +28,7 @@ namespace TestPlanManager.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = AppRoles.Admin)]
+        [Authorize(Roles = AppRoles.Administrator)]
         public async Task<IActionResult> Create(Sprint sprint)
         {
             _ctx.Sprints.Add(sprint);
@@ -37,7 +37,7 @@ namespace TestPlanManager.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = AppRoles.Admin)]
+        [Authorize(Roles = AppRoles.Administrator)]
         public async Task<IActionResult> Update(int id, Sprint update)
         {
             if (id != update.SprintId) return BadRequest();
@@ -47,7 +47,7 @@ namespace TestPlanManager.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = AppRoles.Admin)]
+        [Authorize(Roles = AppRoles.Administrator)]
         public async Task<IActionResult> Delete(int id)
         {
             var sprint = await _ctx.Sprints.FindAsync(id);

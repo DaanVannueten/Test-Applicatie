@@ -1,0 +1,120 @@
+@model TestPlanManager.Models.UserManagementPageViewModel
+@{
+    ViewData["Title"] = "User Management";
+}
+
+<div class="d-flex justify-content-between align-items-center mt-3 mb-3">
+    <h4 class="mb-0">User Management</h4>
+    <a class="btn btn-primary btn-sm" asp-controller="Account" asp-action="Register">
+        <i class="bi bi-person-plus me-1"></i>Create User
+    </a>
+</div>
+
+@if (TempData["SuccessMessage"] is string successMessage && !string.IsNullOrWhiteSpace(successMessage))
+{
+    <div class="alert alert-success" role="alert">@successMessage</div>
+}
+
+@if (TempData["ErrorMessage"] is string errorMessage && !string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger" role="alert">@errorMessage</div>
+}
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover mb-0 align-middle user-management-table">
+                <thead class="table-light">
+                    <tr>
+                        <th>Email</th>
+                        <th style="width: 340px;">Role</th>
+                        <th style="width: 180px;">Status</th>
+                        <th style="width: 260px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Users.Any())
+                    {
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-4">No users found.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var user in Model.Users)
+                        {
+                            <tr>
+                                <td>@user.Email</td>
+                                <td>
+                                    <form asp-action="UpdateRole" asp-controller="UserManagement" method="post" class="role-form">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="UserId" value="@user.UserId" />
+                                        <select class="form-select form-select-sm role-select" name="Role">
+                                            <option value="@TestPlanManager.Models.AppRoles.Tester" selected="@(user.Role == TestPlanManager.Models.AppRoles.Tester)">@TestPlanManager.Models.AppRoles.Tester</option>
+                                            <option value="@TestPlanManager.Models.AppRoles.TestManager" selected="@(user.Role == TestPlanManager.Models.AppRoles.TestManager)">@TestPlanManager.Models.AppRoles.TestManager</option>
+                                            <option value="@TestPlanManager.Models.AppRoles.Administrator" selected="@(user.Role == TestPlanManager.Models.AppRoles.Administrator)">@TestPlanManager.Models.AppRoles.Administrator</option>
+                                        </select>
+                                        <button class="btn btn-outline-primary btn-sm role-save-btn" type="submit">Save</button>
+                                    </form>
+                                </td>
+                                <td>
+                                    @if (user.IsLockedOut)
+                                    {
+                                        <span class="badge text-bg-danger">Locked</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge text-bg-success">Active</span>
+                                    }
+                                </td>
+                                <td>
+                                    <form asp-action="UpdateLock" asp-controller="UserManagement" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="UserId" value="@user.UserId" />
+                                        <input type="hidden" name="LockUser" value="@(!user.IsLockedOut)" />
+                                        <button class="btn btn-sm @(user.IsLockedOut ? "btn-outline-success" : "btn-outline-danger")" type="submit">
+                                            @(user.IsLockedOut ? "Unlock" : "Lock")
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .user-management-table td {
+        vertical-align: middle;
+    }
+
+    .role-form {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        min-width: 300px;
+    }
+
+    .role-select {
+        min-width: 210px;
+        flex: 1 1 auto;
+    }
+
+    .role-save-btn {
+        flex: 0 0 auto;
+        min-width: 72px;
+    }
+
+    @@media (max-width: 768px) {
+        .role-form {
+            min-width: 250px;
+        }
+
+        .role-select {
+            min-width: 170px;
+        }
+    }
+</style>

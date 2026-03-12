@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TestPlanManager.Data;
 
@@ -10,9 +11,11 @@ using TestPlanManager.Data;
 namespace TestPlanManager.Migrations
 {
     [DbContext(typeof(TestPlanContext))]
-    partial class TestPlanContextModelSnapshot : ModelSnapshot
+    [Migration("20260312124936_AddLastExecutedBy")]
+    partial class AddLastExecutedBy
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.3");

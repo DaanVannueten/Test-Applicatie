@@ -17,4 +17,7 @@ public class RegisterViewModel
     [DataType(DataType.Password)]
     [Compare(nameof(Password), ErrorMessage = "Password and confirmation do not match.")]
     public string ConfirmPassword { get; set; } = string.Empty;
+
+    [Required]
+    public string Role { get; set; } = string.Empty;
 }

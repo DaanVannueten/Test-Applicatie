@@ -7,9 +7,12 @@ namespace TestPlanManager.Models
         public int SprintId { get; set; }
         public string BuildNr { get; set; } = string.Empty;
         public bool IsArchived { get; set; }
+        public bool IsTemplate { get; set; }
+        public int? SourceTemplateSprintId { get; set; }
         public int CategoryCount { get; set; }
         public int TestCount { get; set; }
         public DateTime? LastExecutionDate { get; set; }
+        public string? LastWorkedBy { get; set; }
     }
 
     public class TestCategoryDto
@@ -41,12 +44,18 @@ namespace TestPlanManager.Models
         public IEnumerable<TestPlanVersionDto> Versions { get; set; } = new List<TestPlanVersionDto>();
         public int? SelectedSprintId { get; set; }
         public string? SelectedBuildNr { get; set; }
+        public bool SelectedIsTemplate { get; set; }
+        public bool IncludeTemplatesView { get; set; }
         public IEnumerable<TestCategoryDto> Categories { get; set; } = new List<TestCategoryDto>();
 
         // additional dashboard metrics derived from actual test rows
         public int TotalTestCases { get; set; }
-        public int TestsExecutedToday { get; set; }
+        public int TestsExecuted { get; set; }
         public float OverallPassRate { get; set; }
         public int OpenOrFailed { get; set; }
+        public float PassedRate { get; set; }
+        public float FailedRate { get; set; }
+        public float BlockedRate { get; set; }
+        public float OutOfScopeRate { get; set; }
     }
 }

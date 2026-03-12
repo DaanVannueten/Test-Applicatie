@@ -49,7 +49,7 @@ namespace TestPlanManager.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = AppRoles.Admin)]
+        [Authorize(Roles = AppRoles.Managers)]
         public async Task<IActionResult> Create(TestCategory cat)
         {
             _ctx.TestCategories.Add(cat);

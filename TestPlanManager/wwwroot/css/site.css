@@ -63,7 +63,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .navbar-nav .nav-link {
-  color: rgba(255, 255, 255, 0.9) !important;
+  color: #334155 !important;
   font-weight: 500;
   font-size: 0.95rem;
   transition: all 0.2s ease;
@@ -72,10 +72,19 @@ h1, h2, h3, h4, h5, h6 {
 
 .navbar-nav .nav-link:hover,
 .navbar-nav .nav-link.active {
-  color: white !important;
-  background: rgba(255, 255, 255, 0.15);
+  color: #0f172a !important;
+  background: #e2e8f0;
   border-radius: 0.5rem;
   padding: 0.5rem 1rem;
+}
+
+.current-user-pill {
+  color: #0f172a !important;
+  background: #e2e8f0;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  padding: 0.45rem 0.8rem !important;
+  font-weight: 600;
 }
 
 .dropdown-menu {
@@ -309,16 +318,24 @@ h1, h2, h3, h4, h5, h6 {
   border-collapse: separate;
   background: white;
   border-radius: 0.875rem;
-  overflow: hidden;
-  min-width: 1280px;
+  overflow: visible;
+  width: 100%;
+  table-layout: auto;
+}
+
+.table-responsive {
+  overflow-x: visible;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 0;
 }
 
 .dashboard-table thead th {
-  padding: 0.95rem 1.35rem;
+  padding: 0.9rem 1.1rem;
 }
 
 .dashboard-table tbody td {
-  padding: 1.25rem 1.35rem;
+  padding: 1.1rem 1.1rem;
   border-top: 1px solid var(--border-color);
 }
 
@@ -362,26 +379,27 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .progress-cell {
-  min-width: 230px;
+  min-width: 0;
 }
 
 .results-cell {
-  min-width: 270px;
+  min-width: 0;
 }
 
 .result-chips {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  flex-wrap: nowrap;
+  gap: 0.3rem;
 }
 
 .result-chip {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.34rem 0.62rem;
+  padding: 0.3rem 0.5rem;
   border-radius: 0.62rem;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 800;
   line-height: 1;
   letter-spacing: 0.2px;
@@ -414,11 +432,16 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .status-cell {
-  min-width: 115px;
+  min-width: 0;
 }
 
 .actions-cell {
-  min-width: 120px;
+  min-width: 150px;
+}
+
+.dashboard-table th:last-child,
+.dashboard-table td:last-child {
+  padding-right: 1.75rem;
 }
 
 .owner-label {
@@ -558,10 +581,6 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ==================== RESPONSIVE ==================== */
 @media (max-width: 992px) {
-  .dashboard-table {
-    min-width: 0;
-  }
-
   .progress-wrap {
     min-width: 0;
   }

@@ -1,39 +1,42 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
 using TestPlanManager.Models;
 
 namespace TestPlanManager.Data;
 
 public static class IdentitySeeder
 {
-    private const string DefaultAdminEmail = "admin@testplan.local";
-    private const string DefaultAdminPassword = "Admin1234";
+    private const string FallbackAdminEmail = "admin@testplan.local";
+    private const string FallbackAdminPassword = "Admin1234!";
 
     public static async Task SeedAsync(IServiceProvider services)
     {
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+        var configuration = services.GetRequiredService<IConfiguration>();
 
-        if (!await roleManager.RoleExistsAsync(AppRoles.Admin))
+        foreach (var role in AppRoles.All)
         {
-            await roleManager.CreateAsync(new IdentityRole(AppRoles.Admin));
+            if (!await roleManager.RoleExistsAsync(role))
+            {
+                await roleManager.CreateAsync(new IdentityRole(role));
+            }
         }
 
-        if (!await roleManager.RoleExistsAsync(AppRoles.User))
-        {
-            await roleManager.CreateAsync(new IdentityRole(AppRoles.User));
-        }
+        var adminEmail = configuration["SeedAdmin:Email"] ?? FallbackAdminEmail;
+        var adminPassword = configuration["SeedAdmin:Password"] ?? FallbackAdminPassword;
 
-        var adminUser = await userManager.FindByEmailAsync(DefaultAdminEmail);
+        var adminUser = await userManager.FindByEmailAsync(adminEmail);
         if (adminUser == null)
         {
             adminUser = new ApplicationUser
             {
-                UserName = DefaultAdminEmail,
-                Email = DefaultAdminEmail,
+                UserName = adminEmail,
+                Email = adminEmail,
                 EmailConfirmed = true
             };
 
-            var createResult = await userManager.CreateAsync(adminUser, DefaultAdminPassword);
+            var createResult = await userManager.CreateAsync(adminUser, adminPassword);
             if (!createResult.Succeeded)
             {
                 var errors = string.Join(", ", createResult.Errors.Select(e => e.Description));
@@ -41,14 +44,9 @@ public static class IdentitySeeder
             }
         }
 
-        if (!await userManager.IsInRoleAsync(adminUser, AppRoles.Admin))
+        if (!await userManager.IsInRoleAsync(adminUser, AppRoles.Administrator))
         {
-            await userManager.AddToRoleAsync(adminUser, AppRoles.Admin);
-        }
-
-        if (!await userManager.IsInRoleAsync(adminUser, AppRoles.User))
-        {
-            await userManager.AddToRoleAsync(adminUser, AppRoles.User);
+            await userManager.AddToRoleAsync(adminUser, AppRoles.Administrator);
         }
     }
 }

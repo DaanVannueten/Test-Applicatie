@@ -40,9 +40,11 @@ else
             <thead>
                 <tr>
                     <th>Version</th>
+                    <th>Type</th>
                     <th>Categories</th>
                     <th>Tests</th>
                     <th>Last Executed</th>
+                    <th>Last Worked By</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -51,9 +53,20 @@ else
             {
                 <tr>
                     <td>Build @version.BuildNr</td>
+                    <td>
+                        @if (version.IsTemplate)
+                        {
+                            <span class="badge bg-info">Template</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Cycle</span>
+                        }
+                    </td>
                     <td>@version.CategoryCount</td>
                     <td>@version.TestCount</td>
                     <td>@(version.LastExecutionDate.HasValue ? version.LastExecutionDate.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm") : "-")</td>
+                    <td>@(string.IsNullOrWhiteSpace(version.LastWorkedBy) ? "-" : version.LastWorkedBy)</td>
                     <td>
                         <div class="d-flex gap-2">
                             <form method="post" asp-action="Restore" asp-controller="TestPlanVersion">

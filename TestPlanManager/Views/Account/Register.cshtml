@@ -1,13 +1,13 @@
 @model TestPlanManager.Models.RegisterViewModel
 @{
-    ViewData["Title"] = "Register";
+    ViewData["Title"] = "Create User";
 }
 
 <div class="row justify-content-center mt-5">
     <div class="col-12 col-md-6 col-lg-4">
         <div class="card shadow-sm">
             <div class="card-body p-4">
-                <h1 class="h4 mb-3">Create account</h1>
+                <h1 class="h4 mb-3">Create user</h1>
                 <form asp-action="Register" method="post">
                     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
@@ -29,12 +29,22 @@
                         <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
                     </div>
 
-                    <button type="submit" class="btn btn-primary w-100">Register</button>
+                    <div class="mb-3">
+                        <label asp-for="Role" class="form-label">Role</label>
+                        <select asp-for="Role" class="form-select">
+                            <option value="@TestPlanManager.Models.AppRoles.Tester">@TestPlanManager.Models.AppRoles.Tester</option>
+                            <option value="@TestPlanManager.Models.AppRoles.TestManager">@TestPlanManager.Models.AppRoles.TestManager</option>
+                            <option value="@TestPlanManager.Models.AppRoles.Administrator">@TestPlanManager.Models.AppRoles.Administrator</option>
+                        </select>
+                        <span asp-validation-for="Role" class="text-danger"></span>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">Create User</button>
                 </form>
 
                 <p class="mt-3 mb-0 small text-muted">
-                    Already have an account?
-                    <a asp-action="Login">Sign in</a>
+                    Return to
+                    <a asp-controller="UserManagement" asp-action="Index">User Management</a>
                 </p>
             </div>
         </div>

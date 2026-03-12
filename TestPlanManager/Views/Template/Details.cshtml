@@ -1,0 +1,135 @@
+@model TestPlanManager.Models.TemplateDetailsPageViewModel
+@{
+    ViewData["Title"] = "Template Details";
+    var canManageTemplates = User.IsInRole(TestPlanManager.Models.AppRoles.Administrator)
+        || User.IsInRole(TestPlanManager.Models.AppRoles.TestManager);
+}
+
+<div class="d-flex justify-content-between align-items-center mt-3 mb-3">
+    <h4 class="mb-0">@Model.Template.Name <small class="text-muted">(@Model.Template.ProductName)</small></h4>
+    <a class="btn btn-sm btn-outline-secondary" asp-action="Index" asp-controller="Template">Back to Templates</a>
+</div>
+
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert-success" role="alert">@successMessage</div>
+}
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert-danger" role="alert">@errorMessage</div>
+}
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6>Create Test Cycle From Template</h6>
+                <p class="small text-muted mb-3">Tester can start a new cycle for a specific build/version from this template.</p>
+                <form asp-action="CreateCycle" asp-controller="Template" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="TestTemplateId" value="@Model.Template.TestTemplateId" />
+                    <div class="input-group">
+                        <input class="form-control" name="BuildNr" placeholder="Build number (e.g. 2026.03.12)" required />
+                        <button class="btn btn-primary" type="submit">Create Cycle</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    @if (canManageTemplates)
+    {
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h6>Add Template Testcase</h6>
+                    <form asp-action="AddTestCase" asp-controller="Template" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="TestTemplateId" value="@Model.Template.TestTemplateId" />
+                        <div class="mb-2">
+                            <input class="form-control" name="Name" placeholder="Testcase title" required />
+                        </div>
+                        <div class="mb-2">
+                            <textarea class="form-control" name="Description" rows="2" placeholder="Uitleg / steps" required></textarea>
+                        </div>
+                        <div class="mb-2">
+                            <input class="form-control" name="MediaUrl" placeholder="Screenshot URL (optional)" />
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-6">
+                                <select class="form-select" name="ScopeStatus">
+                                    <option value="InScope">In Scope</option>
+                                    <option value="OutOfScope">Out of Scope</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <select class="form-select" name="DefaultExecutionStatus">
+                                    <option value="NotRun">Not Run</option>
+                                    <option value="Passed">Passed</option>
+                                    <option value="Failed">Failed</option>
+                                    <option value="Blocked">Blocked</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <input class="form-control" name="Production" placeholder="Production notes / expected environment" />
+                        </div>
+                        <button class="btn btn-outline-primary" type="submit">Add Testcase + Apply to Active Cycles</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h6 class="mb-0">Template Testcases (@Model.TestCases.Count)</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 80px;">#</th>
+                        <th>Title</th>
+                        <th>Description</th>
+                        <th style="width: 110px;">Scope</th>
+                        <th style="width: 120px;">Default</th>
+                        <th style="width: 160px;">Media</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (!Model.TestCases.Any())
+                {
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">No testcases yet for this template.</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var testCase in Model.TestCases)
+                    {
+                        <tr>
+                            <td>@testCase.Sequence</td>
+                            <td>@testCase.Name</td>
+                            <td>@testCase.Description</td>
+                            <td>@testCase.ScopeStatus</td>
+                            <td>@testCase.DefaultExecutionStatus</td>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(testCase.MediaUrl))
+                                {
+                                    <a href="@testCase.MediaUrl" target="_blank" rel="noopener">Open media</a>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

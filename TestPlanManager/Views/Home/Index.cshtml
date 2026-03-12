@@ -2,15 +2,62 @@
 
 @{
     ViewData["Title"] = "Dashboard";
+    var canManageTests = User.IsInRole(TestPlanManager.Models.AppRoles.Administrator)
+        || User.IsInRole(TestPlanManager.Models.AppRoles.TestManager);
+    var canManageCycleActions = canManageTests && !Model.SelectedIsTemplate;
 }
 
 <div class="d-flex justify-content-between align-items-center mt-3 mb-3">
     <h4 class="mb-0">Dashboard</h4>
     <div class="d-flex align-items-center gap-2">
-        <a class="btn btn-sm btn-outline-primary" asp-controller="TestPlanVersion" asp-action="Index">
-            <i class="bi bi-diagram-3 me-1"></i>Go to Versions
-        </a>
         <span class="badge bg-secondary">Version: @(!string.IsNullOrWhiteSpace(Model.SelectedBuildNr) ? $"Build {Model.SelectedBuildNr}" : "No version")</span>
+    </div>
+</div>
+
+<div class="dashboard-metrics mb-4">
+    <div class="metric-col">
+        <div class="card metric-card border-success-subtle">
+            <div class="card-body">
+                <i class="bi bi-check-circle text-success"></i>
+                <div>
+                    <h5>Passed %</h5>
+                    <h2>@Model.PassedRate.ToString("0.##")%</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="metric-col">
+        <div class="card metric-card border-danger-subtle">
+            <div class="card-body">
+                <i class="bi bi-x-circle text-danger"></i>
+                <div>
+                    <h5>Failed %</h5>
+                    <h2>@Model.FailedRate.ToString("0.##")%</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="metric-col">
+        <div class="card metric-card border-warning-subtle">
+            <div class="card-body">
+                <i class="bi bi-exclamation-circle text-warning"></i>
+                <div>
+                    <h5>Blocked %</h5>
+                    <h2>@Model.BlockedRate.ToString("0.##")%</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="metric-col">
+        <div class="card metric-card border-secondary-subtle">
+            <div class="card-body">
+                <i class="bi bi-slash-circle text-secondary"></i>
+                <div>
+                    <h5>OOS %</h5>
+                    <h2>@Model.OutOfScopeRate.ToString("0.##")%</h2>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -31,8 +78,8 @@
             <div class="card-body">
                 <i class="bi bi-play-circle"></i>
                 <div>
-                    <h5>Tests Executed Today</h5>
-                    <h2>@Model.TestsExecutedToday</h2>
+                    <h5>Tests Executed</h5>
+                    <h2>@Model.TestsExecuted</h2>
                 </div>
             </div>
         </div>
@@ -74,22 +121,29 @@
         <button id="moreFiltersBtn" class="btn btn-sm btn-outline-secondary me-2" type="button">
             <i class="bi bi-funnel me-1"></i>More Filters
         </button>
-        @if (Model.SelectedSprintId.HasValue)
+        @if (canManageTests && Model.SelectedSprintId.HasValue)
         {
             <form method="get" asp-controller="TestCategoryMvc" asp-action="CreateCategory" class="me-2">
                 <input type="hidden" name="sprintId" value="@Model.SelectedSprintId.Value" />
+                @if (Model.IncludeTemplatesView)
+                {
+                    <input type="hidden" name="includeTemplates" value="true" />
+                }
                 <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
                 <button type="submit" class="btn btn-sm btn-primary">
                     <i class="bi bi-folder-plus me-1"></i>Create Test Category
                 </button>
             </form>
         }
-        <form method="post" asp-action="ResetAllTests" asp-controller="Home" onsubmit="return confirm('Reset all tests to Not Run? This cannot be undone.');">
-            <input type="hidden" name="sprintId" value="@Model.SelectedSprintId" />
-            <button type="submit" class="btn btn-sm btn-warning">
-                <i class="bi bi-arrow-counterclockwise me-1"></i>Reset All Tests
-            </button>
-        </form>
+        @if (canManageCycleActions)
+        {
+            <form method="post" asp-action="ResetAllTests" asp-controller="Home" onsubmit="return confirm('Reset all tests to Not Run? This cannot be undone.');">
+                <input type="hidden" name="sprintId" value="@Model.SelectedSprintId" />
+                <button type="submit" class="btn btn-sm btn-warning">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>Reset All Tests
+                </button>
+            </form>
+        }
     </div>
 </div>
 

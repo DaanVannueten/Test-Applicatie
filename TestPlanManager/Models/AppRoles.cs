@@ -2,6 +2,10 @@ namespace TestPlanManager.Models;
 
 public static class AppRoles
 {
-    public const string Admin = "Admin";
-    public const string User = "User";
+    public const string Administrator = "Administrator";
+    public const string TestManager = "Test Manager";
+    public const string Tester = "Tester";
+
+    public static readonly string[] All = [Administrator, TestManager, Tester];
+    public const string Managers = $"{Administrator},{TestManager}";
 }
