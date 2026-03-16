@@ -4,9 +4,26 @@
     ViewData["Title"] = "Edit Test";
     var canManageTests = User.IsInRole(TestPlanManager.Models.AppRoles.Administrator)
         || User.IsInRole(TestPlanManager.Models.AppRoles.TestManager);
+    var isTemplateView = Model.TestCategory?.Sprint?.IsTemplate == true;
+    var sprintId = Model.TestCategory?.SprintId ?? 0;
+    var buildNr = Model.TestCategory?.Sprint?.BuildNr ?? string.Empty;
+    var categoryName = Model.TestCategory?.Name ?? "Category";
+    var buildUrl = isTemplateView
+        ? Url.Action("Index", "Home", new { sprintId, includeTemplates = true })
+        : Url.Action("Index", "Home", new { sprintId });
+    var categoryUrl = Url.RouteUrl("test-category-details", new { id = Model.TestCategoryId });
+    var breadcrumbs = new System.Collections.Generic.List<TestPlanManager.Models.BreadcrumbItem>
+    {
+        new() { Label = "Versions & Templates", Url = Url.Action("Index", "TestPlanVersion") },
+        new() { Label = $"{(isTemplateView ? "Template" : "Build")} {buildNr}", Url = buildUrl },
+        new() { Label = categoryName, Url = categoryUrl },
+        new() { Label = $"Test TC-{Model.TestId:D3}", IsCurrent = true }
+    };
 }
 
 <div class="container-fluid px-4 py-5">
+    <partial name="_Breadcrumbs" model="breadcrumbs" />
+
     <div class="row mb-4">
         <div class="col-12">
             <a href="@Url.RouteUrl("test-category-details", new { id = Model.TestCategoryId })" class="btn back-nav-btn">

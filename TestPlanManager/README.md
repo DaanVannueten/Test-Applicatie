@@ -83,13 +83,12 @@ Kernmappen:
 - `wwwroot/`
   - statische assets (css/js/libs)
 - `App_Data/`
-  - appdata bestanden zoals `default-version.json`
+  - runtime appdata bestanden zoals `default-version.json` (niet committen)
 
 Belangrijke rootbestanden:
 - `Program.cs`
 - `appsettings.json`
 - `TestPlanManager.csproj`
-- `TestPlan.db`
 
 ## 5. Datamodel
 
@@ -236,7 +235,7 @@ Standaard development URLs staan in `Properties/launchSettings.json`:
 
 ### Huidige database
 
-- SQLite bestand: `TestPlan.db`
+- SQLite bestand: lokaal gegenereerd `App_Data/TestPlan.db` (niet committen)
 - EF migraties: map `Migrations/`
 
 ### Handige EF commando's
@@ -254,13 +253,39 @@ dotnet ef database update
 ### appsettings
 
 Bestand: `appsettings.json`
-- `ConnectionStrings:DefaultConnection = Data Source=TestPlan.db`
+- `ConnectionStrings:DefaultConnection = Data Source=App_Data/TestPlan.db`
+
+De applicatie resolve't dit pad expliciet vanaf de project-root, zodat lokaal altijd dezelfde database gebruikt wordt, ook wanneer je de app vanuit een andere werkmap of tool start.
+
+### Development secrets
+
+Gebruik voor lokale seed-credentials `SeedAdmin:Email` en `SeedAdmin:Password` via user-secrets of environment variables in plaats van ze in `appsettings.Development.json` te committen.
+
+```bash
+dotnet user-secrets init
+dotnet user-secrets set "SeedAdmin:Email" "admin@testplan.local"
+dotnet user-secrets set "SeedAdmin:Password" "KiesEenSterkWachtwoord123!"
+```
+
+Als deze waarden niet gezet zijn, worden alleen de rollen geseed en geen default admin-account aangemaakt.
 
 ### Omgevingsvariabelen
 
 Ondersteund in `Program.cs`:
 - `APP_URL` (volledige url, heeft voorrang)
 - `PORT` (fallback, luistert op `http://0.0.0.0:{PORT}`)
+
+### Development beheercommando's
+
+De CLI-commando's voor gebruikersbeheer in `Program.cs` zijn alleen beschikbaar in de `Development` environment:
+
+```bash
+dotnet run --no-launch-profile -- --list-users
+dotnet run --no-launch-profile -- --ensure-user <email> <password> <role>
+dotnet run --no-launch-profile -- --reset-password <email> <newPassword>
+```
+
+Deze commando's zijn bedoeld voor lokale recovery en troubleshooting, niet voor productiegebruik.
 
 ## 11. Presentatiehulp (spreekpunten)
 

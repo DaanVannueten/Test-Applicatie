@@ -56,9 +56,6 @@
                                 <a class="nav-link @(currentController == "UserManagement" ? "active fw-semibold" : "")" asp-controller="UserManagement" asp-action="Index" style="color: #475569;"><i class="bi bi-people me-1"></i>User management</a>
                             </li>
                         }
-                        <li class="nav-item d-none d-lg-flex align-items-center ms-lg-3 text-muted small" aria-live="polite">
-                            <span><i class="bi bi-geo-alt me-1"></i>You are here: @currentPageLabel</span>
-                        </li>
                     </ul>
                     <ul class="navbar-nav align-items-lg-center mt-2 mt-lg-0">
                         @if (User.Identity?.IsAuthenticated == true)

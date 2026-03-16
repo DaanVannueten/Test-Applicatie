@@ -16,6 +16,7 @@ namespace TestPlanManager.Controllers
         private bool IsTestManager => User.IsInRole(AppRoles.TestManager);
         private bool IsTester => User.IsInRole(AppRoles.Tester);
         private bool IsManagerOrAdmin => IsAdmin || IsTestManager;
+        private bool CanArchiveCycles => IsManagerOrAdmin || IsTester;
 
         public TestPlanVersionController(TestPlanContext ctx, IDefaultVersionStore defaultVersionStore)
         {
@@ -73,7 +74,7 @@ namespace TestPlanManager.Controllers
         [HttpGet]
         public async Task<IActionResult> Archived()
         {
-            if (!IsManagerOrAdmin)
+            if (!IsManagerOrAdmin && !IsTester)
             {
                 return Forbid();
             }
@@ -401,7 +402,7 @@ namespace TestPlanManager.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Archive(int sprintId)
         {
-            if (!IsManagerOrAdmin)
+            if (!CanArchiveCycles)
             {
                 return Forbid();
             }
@@ -410,6 +411,12 @@ namespace TestPlanManager.Controllers
             if (sprint == null)
             {
                 TempData["ErrorMessage"] = "Version not found.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (sprint.IsTemplate && !IsManagerOrAdmin)
+            {
+                TempData["ErrorMessage"] = "Only managers can archive template versions.";
                 return RedirectToAction(nameof(Index));
             }
 

@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -169,7 +168,7 @@ public class HomeController : Controller
     }
 
     [HttpPost]
-    [Authorize(Roles = AppRoles.Managers)]
+    [Authorize(Roles = $"{AppRoles.Managers},{AppRoles.Tester}")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ArchiveCycle(int sprintId)
     {

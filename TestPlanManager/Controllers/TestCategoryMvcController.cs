@@ -46,7 +46,10 @@ namespace TestPlanManager.Controllers
         // action to edit test status
         public async Task<IActionResult> EditTest(int id)
         {
-            var test = await _ctx.Tests.FindAsync(id);
+            var test = await _ctx.Tests
+                .Include(t => t.TestCategory)
+                .ThenInclude(tc => tc.Sprint)
+                .FirstOrDefaultAsync(t => t.TestId == id);
             if (test == null) return NotFound();
             return View(test);
         }
@@ -84,6 +87,7 @@ namespace TestPlanManager.Controllers
                 {
                     ModelState.AddModelError("", uploadResult.ErrorMessage!);
                     model.MediaUrl = test.MediaUrl;
+                    model.TestCategory = category;
                     return View(model);
                 }
 
@@ -120,10 +124,16 @@ namespace TestPlanManager.Controllers
         [HttpGet]
         public async Task<IActionResult> CreateTest(int testCategoryId)
         {
-            var category = await _ctx.TestCategories.FindAsync(testCategoryId);
+            var category = await _ctx.TestCategories
+                .Include(tc => tc.Sprint)
+                .FirstOrDefaultAsync(tc => tc.TestCategoryId == testCategoryId);
             if (category == null) return NotFound();
 
-            var test = new Test { TestCategoryId = testCategoryId };
+            var test = new Test
+            {
+                TestCategoryId = testCategoryId,
+                TestCategory = category
+            };
             return View(test);
         }
 
@@ -131,9 +141,19 @@ namespace TestPlanManager.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateTest(Test model, IFormFile? mediaFile)
         {
+            var category = await _ctx.TestCategories
+                .Include(tc => tc.Sprint)
+                .FirstOrDefaultAsync(tc => tc.TestCategoryId == model.TestCategoryId);
+
+            if (category == null)
+            {
+                return NotFound();
+            }
+
             if (string.IsNullOrWhiteSpace(model.Name) || string.IsNullOrWhiteSpace(model.Description))
             {
                 ModelState.AddModelError("", "Name and Description are required.");
+                model.TestCategory = category;
                 return View(model);
             }
 
@@ -150,6 +170,7 @@ namespace TestPlanManager.Controllers
                 if (!uploadResult.Succeeded)
                 {
                     ModelState.AddModelError("", uploadResult.ErrorMessage!);
+                    model.TestCategory = category;
                     return View(model);
                 }
 
@@ -159,7 +180,7 @@ namespace TestPlanManager.Controllers
             _ctx.Tests.Add(model);
             await _ctx.SaveChangesAsync();
 
-            var category = await _ctx.TestCategories
+            category = await _ctx.TestCategories
                 .Include(tc => tc.Sprint)
                 .FirstOrDefaultAsync(tc => tc.TestCategoryId == model.TestCategoryId);
 

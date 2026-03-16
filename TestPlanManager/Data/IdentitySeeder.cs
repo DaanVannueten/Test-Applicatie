@@ -6,9 +6,6 @@ namespace TestPlanManager.Data;
 
 public static class IdentitySeeder
 {
-    private const string FallbackAdminEmail = "admin@testplan.local";
-    private const string FallbackAdminPassword = "Admin1234!";
-
     public static async Task SeedAsync(IServiceProvider services)
     {
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
@@ -23,8 +20,13 @@ public static class IdentitySeeder
             }
         }
 
-        var adminEmail = configuration["SeedAdmin:Email"] ?? FallbackAdminEmail;
-        var adminPassword = configuration["SeedAdmin:Password"] ?? FallbackAdminPassword;
+        var adminEmail = configuration["SeedAdmin:Email"];
+        var adminPassword = configuration["SeedAdmin:Password"];
+
+        if (string.IsNullOrWhiteSpace(adminEmail) || string.IsNullOrWhiteSpace(adminPassword))
+        {
+            return;
+        }
 
         var adminUser = await userManager.FindByEmailAsync(adminEmail);
         if (adminUser == null)

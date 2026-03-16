@@ -1,13 +1,25 @@
 @model TestPlanManager.Models.TestCategory
 
 @{
-        ViewData["Title"] = Model.Name;
+    ViewData["Title"] = Model.Name;
     var canManageTests = User.IsInRole(TestPlanManager.Models.AppRoles.Administrator)
         || User.IsInRole(TestPlanManager.Models.AppRoles.TestManager);
     var canAddTests = User.Identity?.IsAuthenticated == true;
+    var buildUrl = Model.Sprint?.IsTemplate == true
+        ? Url.Action("Index", "Home", new { sprintId = Model.SprintId, includeTemplates = true })
+        : Url.Action("Index", "Home", new { sprintId = Model.SprintId });
+    var buildLabel = $"{(Model.Sprint?.IsTemplate == true ? "Template" : "Build")} {Model.Sprint?.BuildNr}";
+    var breadcrumbs = new System.Collections.Generic.List<TestPlanManager.Models.BreadcrumbItem>
+    {
+        new() { Label = "Versions & Templates", Url = Url.Action("Index", "TestPlanVersion") },
+        new() { Label = buildLabel, Url = buildUrl },
+        new() { Label = Model.Name, IsCurrent = true }
+    };
 }
 
 <div class="container-fluid px-4 py-5">
+    <partial name="_Breadcrumbs" model="breadcrumbs" />
+
     <div class="mb-4">
         <a href="@Url.Action("Index", "Home", new { sprintId = Model.SprintId })" class="btn back-nav-btn">
             <i class="bi bi-chevron-left me-1"></i> Back to Dashboard

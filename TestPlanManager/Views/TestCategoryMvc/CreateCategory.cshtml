@@ -2,9 +2,22 @@
 
 @{
     ViewData["Title"] = "Create Category";
+    var includeTemplatesView = !string.IsNullOrWhiteSpace(Model.ReturnUrl)
+        && Model.ReturnUrl.Contains("includeTemplates=true", StringComparison.OrdinalIgnoreCase);
+    var buildUrl = includeTemplatesView
+        ? Url.Action("Index", "Home", new { sprintId = Model.SprintId, includeTemplates = true })
+        : Url.Action("Index", "Home", new { sprintId = Model.SprintId });
+    var breadcrumbs = new System.Collections.Generic.List<TestPlanManager.Models.BreadcrumbItem>
+    {
+        new() { Label = "Versions & Templates", Url = Url.Action("Index", "TestPlanVersion") },
+        new() { Label = $"{(includeTemplatesView ? "Template" : "Build")} {Model.BuildNr}", Url = buildUrl },
+        new() { Label = "Create Category", IsCurrent = true }
+    };
 }
 
 <div class="container-fluid px-4 py-5">
+    <partial name="_Breadcrumbs" model="breadcrumbs" />
+
     <div class="row mb-4">
         <div class="col-12">
             <a href="@(string.IsNullOrWhiteSpace(Model.ReturnUrl) ? Url.Action("Index", "Home", new { sprintId = Model.SprintId }) : Model.ReturnUrl)" class="btn back-nav-btn">

@@ -1,0 +1,29 @@
+@model IEnumerable<TestPlanManager.Models.BreadcrumbItem>
+
+@{
+    var items = Model?.ToList() ?? new List<TestPlanManager.Models.BreadcrumbItem>();
+}
+
+@if (items.Any())
+{
+    <nav aria-label="Breadcrumb" class="app-breadcrumb mb-4">
+        <ol class="app-breadcrumb-list">
+            @for (var index = 0; index < items.Count; index++)
+            {
+                var item = items[index];
+                var isLast = index == items.Count - 1;
+
+                <li class="app-breadcrumb-item @(item.IsCurrent || isLast ? "is-current" : string.Empty)">
+                    @if (!string.IsNullOrWhiteSpace(item.Url) && !item.IsCurrent && !isLast)
+                    {
+                        <a class="app-breadcrumb-link" href="@item.Url">@item.Label</a>
+                    }
+                    else
+                    {
+                        <span class="app-breadcrumb-current">@item.Label</span>
+                    }
+                </li>
+            }
+        </ol>
+    </nav>
+}
