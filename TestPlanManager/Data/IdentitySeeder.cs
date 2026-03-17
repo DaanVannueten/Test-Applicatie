@@ -35,7 +35,8 @@ public static class IdentitySeeder
             {
                 UserName = adminEmail,
                 Email = adminEmail,
-                EmailConfirmed = true
+                EmailConfirmed = true,
+                IsActive = true
             };
 
             var createResult = await userManager.CreateAsync(adminUser, adminPassword);
@@ -43,6 +44,15 @@ public static class IdentitySeeder
             {
                 var errors = string.Join(", ", createResult.Errors.Select(e => e.Description));
                 throw new InvalidOperationException($"Failed to create default admin user: {errors}");
+            }
+        }
+        else
+        {
+            // Ensure existing admin user is active
+            if (!adminUser.IsActive)
+            {
+                adminUser.IsActive = true;
+                await userManager.UpdateAsync(adminUser);
             }
         }
 

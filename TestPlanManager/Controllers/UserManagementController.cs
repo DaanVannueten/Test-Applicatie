@@ -31,7 +31,8 @@ public class UserManagementController : Controller
                 UserId = user.Id,
                 Email = user.Email ?? user.UserName ?? string.Empty,
                 Role = roles.FirstOrDefault() ?? string.Empty,
-                IsLockedOut = user.LockoutEnd.HasValue && user.LockoutEnd > DateTimeOffset.UtcNow
+                IsLockedOut = user.LockoutEnd.HasValue && user.LockoutEnd > DateTimeOffset.UtcNow,
+                IsActive = user.IsActive
             });
         }
 
@@ -122,6 +123,39 @@ public class UserManagementController : Controller
         TempData["SuccessMessage"] = model.LockUser
             ? $"User {user.Email} has been locked."
             : $"User {user.Email} has been unlocked.";
+
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateActive(UpdateUserActiveStatusInputModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            TempData["ErrorMessage"] = "Invalid request.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var user = await _userManager.FindByIdAsync(model.UserId);
+        if (user == null)
+        {
+            TempData["ErrorMessage"] = "User not found.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        user.IsActive = model.IsActive;
+
+        var result = await _userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+        {
+            TempData["ErrorMessage"] = string.Join("; ", result.Errors.Select(e => e.Description));
+            return RedirectToAction(nameof(Index));
+        }
+
+        TempData["SuccessMessage"] = model.IsActive
+            ? $"User {user.Email} has been activated."
+            : $"User {user.Email} has been deactivated.";
 
         return RedirectToAction(nameof(Index));
     }

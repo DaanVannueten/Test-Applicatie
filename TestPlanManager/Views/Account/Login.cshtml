@@ -29,7 +29,7 @@
 
                         <div class="mb-3">
                             <label asp-for="Password" class="form-label"></label>
-                            <input asp-for="Password" class="form-control" autocomplete="current-password" placeholder="Enter password" />
+                            <input asp-for="Password" class="form-control" type="password" autocomplete="current-password" placeholder="Enter password" onpaste="return false;" />
                             <span asp-validation-for="Password" class="text-danger"></span>
                         </div>
 
@@ -42,7 +42,10 @@
                     </form>
                 </div>
                 <div class="card-footer auth-footer">
-                    <span class="small text-muted">Need access? Contact an administrator.</span>
+                    <div class="d-grid gap-2">
+                        <span class="small text-muted text-center mb-2">Don't have an account? <a asp-action="RegisterSelf">Create one here</a>.</span>
+                        <span class="small text-muted text-center">Need access? Contact an administrator.</span>
+                    </div>
                 </div>
             </div>
         </div>

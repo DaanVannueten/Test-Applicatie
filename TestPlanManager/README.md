@@ -38,7 +38,7 @@ De kern van de app draait rond deze hiërarchie:
 - .NET: `net10.0`
 - Framework: ASP.NET Core MVC
 - ORM: Entity Framework Core `10.0.3`
-- Database: SQLite (`TestPlan.db`)
+- Database: SQLite (`App_Data/TestPlan.db`)
 - Frontend: Razor views + Bootstrap + jQuery
 
 Belangrijke dependencies staan in `TestPlanManager.csproj`.
@@ -119,8 +119,9 @@ Bestand: `Models/Test.cs`
 - `Name`, `Description`
 - `ScopeStatus` (`InScope`/`OutOfScope`)
 - `ExecutionStatus` (`NotRun`/`Passed`/`Failed`/`Blocked`)
-- `Production`, `Comments`, `VideoURL`
+- `Production`, `Comments`, `MediaUrl`
 - `ExecutedAt` (UTC timestamp bij uitvoering)
+- `LastExecutedBy` (laatste gebruiker die de test uitvoerde)
 
 ### Enum mapping
 
@@ -145,10 +146,12 @@ Controller: `Controllers/HomeController.cs`, view: `Views/Home/Index.cshtml`
   3. anders nieuwste/eerste versie.
 - Berekent metrics:
   - totaal aantal tests,
-  - aantal tests vandaag uitgevoerd,
-  - overall pass rate,
-  - open/failed teller.
+  - aantal uitgevoerde tests,
+  - completed categories (`afgerond / totaal`),
+  - open/failed teller,
+  - quality percentages (Passed/Failed/Blocked/OOS).
 - Ondersteunt globale reset: alle tests naar `NotRun` voor gekozen versie.
+- Toont klikbare breadcrumbs voor snellere terugnavigatie tussen niveaus.
 
 ### Versiebeheer
 
@@ -159,6 +162,8 @@ Mogelijkheden:
 - versie kopieren (`Copy`) van bestaande sprint
 - default versie zetten (`SetDefault`)
 - versie verwijderen (`Delete`)
+- ungrouped cycles als inklapbare sectie tonen
+- archived builds openen via aparte lijst (`Archived`)
 
 Default versie wordt bewaard in `App_Data/default-version.json`.
 
@@ -171,6 +176,7 @@ Mogelijkheden:
 - categorie aanmaken (`CreateCategory` GET/POST)
 - categorie wijzigen (`EditCategory` GET/POST)
 - categorie verwijderen (`DeleteCategory`)
+- breadcrumbs tonen op create/edit/detail voor stap-voor-stap navigatie
 
 ### Testbeheer (MVC)
 
@@ -178,6 +184,7 @@ Ook in `TestCategoryMvcController`:
 - test aanmaken (`CreateTest` GET/POST)
 - test wijzigen (`EditTest` GET/POST)
 - test verwijderen (`DeleteTest`)
+- breadcrumbs tonen op create/edit voor snelle terugnavigatie
 
 Bij statuswijzigingen:
 - `ExecutedAt` wordt gezet/gereset;
@@ -188,7 +195,9 @@ Bij statuswijzigingen:
 ### MVC routes
 
 - `GET /Home/Index?sprintId={id}`: dashboard
+- `GET /Home/Index?sprintId={id}&includeTemplates=true`: template-dashboard view
 - `GET /TestPlanVersion/Index`: versiebeheer
+- `GET /TestPlanVersion/Archived`: archived builds overzicht
 - `GET /test-categories/{id}`: categorie detail
 - `GET /test-categories/{id}/edit`: test bewerken
 - `GET /test-categories/{testCategoryId}/tests/new`: nieuwe test
