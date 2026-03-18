@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using TestPlanManager.Models;
 
 namespace TestPlanManager.Controllers;
@@ -18,9 +19,13 @@ public class UserManagementController : Controller
     [HttpGet]
     public async Task<IActionResult> Index()
     {
-        var users = _userManager.Users
-            .OrderBy(u => u.Email)
-            .ToList();
+        var currentUserId = _userManager.GetUserId(User);
+
+        var users = await _userManager.Users
+            .AsNoTracking()
+            .OrderBy(u => u.CreatedAtUtc)
+            .ThenBy(u => u.Email)
+            .ToListAsync();
 
         var vm = new UserManagementPageViewModel();
         foreach (var user in users)
@@ -31,8 +36,8 @@ public class UserManagementController : Controller
                 UserId = user.Id,
                 Email = user.Email ?? user.UserName ?? string.Empty,
                 Role = roles.FirstOrDefault() ?? string.Empty,
-                IsLockedOut = user.LockoutEnd.HasValue && user.LockoutEnd > DateTimeOffset.UtcNow,
-                IsActive = user.IsActive
+                IsActive = user.IsActive,
+                IsCurrentUser = user.Id == currentUserId
             });
         }
 
@@ -88,47 +93,6 @@ public class UserManagementController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> UpdateLock(UpdateUserLockInputModel model)
-    {
-        if (!ModelState.IsValid)
-        {
-            TempData["ErrorMessage"] = "Select a valid user.";
-            return RedirectToAction(nameof(Index));
-        }
-
-        var user = await _userManager.FindByIdAsync(model.UserId);
-        if (user == null)
-        {
-            TempData["ErrorMessage"] = "User not found.";
-            return RedirectToAction(nameof(Index));
-        }
-
-        var currentUserId = _userManager.GetUserId(User);
-        if (user.Id == currentUserId && model.LockUser)
-        {
-            TempData["ErrorMessage"] = "You cannot lock your own account.";
-            return RedirectToAction(nameof(Index));
-        }
-
-        user.LockoutEnabled = true;
-        user.LockoutEnd = model.LockUser ? DateTimeOffset.UtcNow.AddYears(100) : null;
-
-        var result = await _userManager.UpdateAsync(user);
-        if (!result.Succeeded)
-        {
-            TempData["ErrorMessage"] = string.Join("; ", result.Errors.Select(e => e.Description));
-            return RedirectToAction(nameof(Index));
-        }
-
-        TempData["SuccessMessage"] = model.LockUser
-            ? $"User {user.Email} has been locked."
-            : $"User {user.Email} has been unlocked.";
-
-        return RedirectToAction(nameof(Index));
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdateActive(UpdateUserActiveStatusInputModel model)
     {
         if (!ModelState.IsValid)
@@ -141,6 +105,13 @@ public class UserManagementController : Controller
         if (user == null)
         {
             TempData["ErrorMessage"] = "User not found.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var currentUserId = _userManager.GetUserId(User);
+        if (user.Id == currentUserId && !model.IsActive)
+        {
+            TempData["ErrorMessage"] = "You cannot deactivate your own account.";
             return RedirectToAction(nameof(Index));
         }
 
@@ -157,6 +128,51 @@ public class UserManagementController : Controller
             ? $"User {user.Email} has been activated."
             : $"User {user.Email} has been deactivated.";
 
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteUser(DeleteUserInputModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            TempData["ErrorMessage"] = "Invalid request.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var user = await _userManager.FindByIdAsync(model.UserId);
+        if (user == null)
+        {
+            TempData["ErrorMessage"] = "User not found.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var currentUserId = _userManager.GetUserId(User);
+        if (user.Id == currentUserId)
+        {
+            TempData["ErrorMessage"] = "You cannot delete your own account from User Management.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        if (await _userManager.IsInRoleAsync(user, AppRoles.Administrator))
+        {
+            var administrators = await _userManager.GetUsersInRoleAsync(AppRoles.Administrator);
+            if (administrators.Count <= 1)
+            {
+                TempData["ErrorMessage"] = "You cannot delete the last administrator account.";
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
+        var result = await _userManager.DeleteAsync(user);
+        if (!result.Succeeded)
+        {
+            TempData["ErrorMessage"] = string.Join("; ", result.Errors.Select(e => e.Description));
+            return RedirectToAction(nameof(Index));
+        }
+
+        TempData["SuccessMessage"] = $"User {user.Email} has been deleted.";
         return RedirectToAction(nameof(Index));
     }
 }

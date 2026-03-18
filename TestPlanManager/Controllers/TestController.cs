@@ -17,7 +17,9 @@ namespace TestPlanManager.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(int id)
         {
-            var t = await _ctx.Tests.FindAsync(id);
+            var t = await _ctx.Tests
+                .AsNoTracking()
+                .FirstOrDefaultAsync(test => test.TestId == id);
             return t == null ? NotFound() : Ok(t);
         }
 

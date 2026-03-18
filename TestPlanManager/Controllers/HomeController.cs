@@ -35,6 +35,7 @@ public class HomeController : Controller
         var canViewTemplates = includeTemplates && (User.IsInRole(AppRoles.Administrator) || User.IsInRole(AppRoles.TestManager));
 
         var sprints = await _ctx.Sprints
+            .AsNoTracking()
             .Where(s => !s.IsArchived && (!s.IsTemplate || canViewTemplates))
             .Include(s => s.TestCategories)
             .ThenInclude(tc => tc.Tests)

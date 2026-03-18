@@ -15,14 +15,14 @@
         .ToList();
     var breadcrumbs = new System.Collections.Generic.List<TestPlanManager.Models.BreadcrumbItem>
     {
-        new() { Label = "Versions & Templates", IsCurrent = true }
+        new() { Label = "Templates", IsCurrent = true }
     };
 }
 
 <partial name="_Breadcrumbs" model="breadcrumbs" />
 
 <div class="d-flex justify-content-between align-items-center mt-3 mb-3">
-    <h4 class="mb-0">Versions & Templates</h4>
+    <h4 class="mb-0">Templates</h4>
     @if (canViewArchived)
     {
         <a class="btn btn-sm btn-outline-secondary" asp-action="Archived" asp-controller="TestPlanVersion">
@@ -55,16 +55,16 @@
         <div class="col-md-4">
             <div class="card h-100">
                 <div class="card-body">
-                    <h6>Create New Version / Template</h6>
+                    <h6>Create New Template / Cycle</h6>
                     <form method="post" asp-action="Create" asp-controller="TestPlanVersion">
                         @Html.AntiForgeryToken()
                         <div class="mb-2">
-                            <input type="text" name="BuildNr" class="form-control" placeholder="Version or template name" required />
+                            <input type="text" name="BuildNr" class="form-control" placeholder="Template or cycle name" required />
                         </div>
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="checkbox" name="IsTemplate" value="true" id="isTemplateCheck" />
                             <label class="form-check-label" for="isTemplateCheck">
-                                Save as template version
+                                Save as template
                             </label>
                         </div>
                         <button type="submit" class="btn btn-primary w-100">Create</button>
@@ -87,11 +87,11 @@
                     @Html.AntiForgeryToken()
                     <div class="row g-2">
                         <div class="col-md-4">
-                            <input type="text" name="BuildNr" class="form-control" placeholder="New cycle version" required />
+                            <input type="text" name="BuildNr" class="form-control" placeholder="New cycle name" required />
                         </div>
                         <div class="col-md-5">
                             <select name="CopyFromSprintId" class="form-select" required>
-                                <option value="">Select template version</option>
+                                <option value="">Select template</option>
                                 @foreach (var version in templateVersions)
                                 {
                                     <option value="@version.SprintId">Template @version.BuildNr</option>
@@ -107,36 +107,6 @@
             </div>
         </div>
     </div>
-    @if (canManageVersions)
-    {
-        <div class="col-md-12">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h6>Create Template From Existing Cycle</h6>
-                    <form method="post" asp-action="CreateTemplateFromCycle" asp-controller="TestPlanVersion">
-                        @Html.AntiForgeryToken()
-                        <div class="row g-2">
-                            <div class="col-md-4">
-                                <input type="text" name="BuildNr" class="form-control" placeholder="New template version" required />
-                            </div>
-                            <div class="col-md-5">
-                                <select name="SourceCycleSprintId" class="form-select" required>
-                                    <option value="">Select source cycle</option>
-                                    @foreach (var version in Model.Versions.Where(v => !v.IsTemplate))
-                                    {
-                                        <option value="@version.SprintId">Cycle @version.BuildNr</option>
-                                    }
-                                </select>
-                            </div>
-                            <div class="col-md-3 d-grid">
-                                <button type="submit" class="btn btn-outline-primary">Create template</button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    }
 </div>
 }
 
@@ -166,7 +136,7 @@ else
                             <div class="d-flex justify-content-between align-items-center w-100 pe-2 flex-wrap gap-2">
                                 <div class="d-flex align-items-center gap-2">
                                     <span class="badge bg-info">Template</span>
-                                    <span class="fw-semibold">Build @template.BuildNr</span>
+                                    <span class="fw-semibold">@template.BuildNr</span>
                                 </div>
                                 <div class="d-flex align-items-center gap-3 text-muted small">
                                     <span>@template.CategoryCount categories</span>
@@ -230,39 +200,67 @@ else
                                         <tbody>
                                             @foreach (var cycle in groupedCycles)
                                             {
-                                                <tr>
-                                                    <td>Build @cycle.BuildNr</td>
+                                                <tr onclick="window.location='@Url.Action("Index", "Home", new { sprintId = cycle.SprintId })'" style="cursor: pointer;">
+                                                    <td>@cycle.BuildNr</td>
                                                     <td>@cycle.CategoryCount</td>
                                                     <td>@cycle.TestCount</td>
                                                     <td>@(cycle.LastExecutionDate.HasValue ? cycle.LastExecutionDate.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm") : "-")</td>
                                                     <td>@(string.IsNullOrWhiteSpace(cycle.LastWorkedBy) ? "-" : cycle.LastWorkedBy)</td>
-                                                    <td>
-                                                        <div class="d-flex gap-2 flex-wrap">
-                                                            <a class="btn btn-sm btn-outline-secondary" asp-controller="Home" asp-action="Index" asp-route-sprintId="@cycle.SprintId">Open</a>
-                                                            @if (canArchiveCycles && !Model.ShowArchived)
-                                                            {
-                                                                <form method="post" asp-action="Archive" asp-controller="TestPlanVersion" onsubmit="return confirm('Archive this build? It will be hidden from the active versions list.');">
-                                                                    @Html.AntiForgeryToken()
-                                                                    <input type="hidden" name="sprintId" value="@cycle.SprintId" />
-                                                                    <button type="submit" class="btn btn-sm btn-outline-warning">Archive</button>
-                                                                </form>
-                                                            }
-                                                            @if (canManageVersions && Model.ShowArchived)
-                                                            {
-                                                                <form method="post" asp-action="Restore" asp-controller="TestPlanVersion">
-                                                                    @Html.AntiForgeryToken()
-                                                                    <input type="hidden" name="sprintId" value="@cycle.SprintId" />
-                                                                    <button type="submit" class="btn btn-sm btn-outline-success">Restore</button>
-                                                                </form>
-                                                            }
-                                                            @if (canManageVersions)
-                                                            {
-                                                                <form method="post" asp-action="Delete" asp-controller="TestPlanVersion" onsubmit="return confirm('This version and all underlying tests will be deleted. Continue?');">
-                                                                    @Html.AntiForgeryToken()
-                                                                    <input type="hidden" name="sprintId" value="@cycle.SprintId" />
-                                                                    <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-                                                                </form>
-                                                            }
+                                                    <td onclick="event.stopPropagation();">
+                                                        <div class="dropdown dropup">
+                                                            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="More actions">
+                                                                <i class="bi bi-three-dots-vertical"></i>
+                                                            </button>
+                                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                                <li>
+                                                                    <a class="dropdown-item" asp-controller="Home" asp-action="Index" asp-route-sprintId="@cycle.SprintId">Open</a>
+                                                                </li>
+                                                                @if (canManageVersions)
+                                                                {
+                                                                    <li>
+                                                                        <button type="button"
+                                                                                class="dropdown-item"
+                                                                                data-bs-toggle="modal"
+                                                                                data-bs-target="#makeTemplateModal"
+                                                                                data-source-cycle-id="@cycle.SprintId"
+                                                                                data-source-cycle-name="@cycle.BuildNr"
+                                                                                onclick="prepareMakeTemplateModal(this)">
+                                                                            Make template
+                                                                        </button>
+                                                                    </li>
+                                                                }
+                                                                @if (canArchiveCycles && !Model.ShowArchived)
+                                                                {
+                                                                    <li>
+                                                                        <form method="post" asp-action="Archive" asp-controller="TestPlanVersion" onsubmit="return confirm('Archive this build? It will be hidden from the active versions list.');">
+                                                                            @Html.AntiForgeryToken()
+                                                                            <input type="hidden" name="sprintId" value="@cycle.SprintId" />
+                                                                            <button type="submit" class="dropdown-item">Archive</button>
+                                                                        </form>
+                                                                    </li>
+                                                                }
+                                                                @if (canManageVersions && Model.ShowArchived)
+                                                                {
+                                                                    <li>
+                                                                        <form method="post" asp-action="Restore" asp-controller="TestPlanVersion">
+                                                                            @Html.AntiForgeryToken()
+                                                                            <input type="hidden" name="sprintId" value="@cycle.SprintId" />
+                                                                            <button type="submit" class="dropdown-item">Restore</button>
+                                                                        </form>
+                                                                    </li>
+                                                                }
+                                                                @if (canManageVersions)
+                                                                {
+                                                                    <li><hr class="dropdown-divider" /></li>
+                                                                    <li>
+                                                                        <form method="post" asp-action="Delete" asp-controller="TestPlanVersion" onsubmit="return confirm('This version and all underlying tests will be deleted. Continue?');">
+                                                                            @Html.AntiForgeryToken()
+                                                                            <input type="hidden" name="sprintId" value="@cycle.SprintId" />
+                                                                            <button type="submit" class="dropdown-item text-danger">Delete</button>
+                                                                        </form>
+                                                                    </li>
+                                                                }
+                                                            </ul>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -307,39 +305,67 @@ else
                                 <tbody>
                                     @foreach (var cycle in ungroupedCycles.OrderByDescending(v => v.SprintId))
                                     {
-                                        <tr>
-                                            <td>Build @cycle.BuildNr</td>
+                                        <tr onclick="window.location='@Url.Action("Index", "Home", new { sprintId = cycle.SprintId })'" style="cursor: pointer;">
+                                            <td>@cycle.BuildNr</td>
                                             <td>@cycle.CategoryCount</td>
                                             <td>@cycle.TestCount</td>
                                             <td>@(cycle.LastExecutionDate.HasValue ? cycle.LastExecutionDate.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm") : "-")</td>
                                             <td>@(string.IsNullOrWhiteSpace(cycle.LastWorkedBy) ? "-" : cycle.LastWorkedBy)</td>
-                                            <td>
-                                                <div class="d-flex gap-2 flex-wrap">
-                                                    <a class="btn btn-sm btn-outline-secondary" asp-controller="Home" asp-action="Index" asp-route-sprintId="@cycle.SprintId">Open</a>
-                                                    @if (canArchiveCycles && !Model.ShowArchived)
-                                                    {
-                                                        <form method="post" asp-action="Archive" asp-controller="TestPlanVersion" onsubmit="return confirm('Archive this build? It will be hidden from the active versions list.');">
-                                                            @Html.AntiForgeryToken()
-                                                            <input type="hidden" name="sprintId" value="@cycle.SprintId" />
-                                                            <button type="submit" class="btn btn-sm btn-outline-warning">Archive</button>
-                                                        </form>
-                                                    }
-                                                    @if (canManageVersions && Model.ShowArchived)
-                                                    {
-                                                        <form method="post" asp-action="Restore" asp-controller="TestPlanVersion">
-                                                            @Html.AntiForgeryToken()
-                                                            <input type="hidden" name="sprintId" value="@cycle.SprintId" />
-                                                            <button type="submit" class="btn btn-sm btn-outline-success">Restore</button>
-                                                        </form>
-                                                    }
-                                                    @if (canManageVersions)
-                                                    {
-                                                        <form method="post" asp-action="Delete" asp-controller="TestPlanVersion" onsubmit="return confirm('This version and all underlying tests will be deleted. Continue?');">
-                                                            @Html.AntiForgeryToken()
-                                                            <input type="hidden" name="sprintId" value="@cycle.SprintId" />
-                                                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-                                                        </form>
-                                                    }
+                                            <td onclick="event.stopPropagation();">
+                                                <div class="dropdown dropup">
+                                                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="More actions">
+                                                        <i class="bi bi-three-dots-vertical"></i>
+                                                    </button>
+                                                    <ul class="dropdown-menu dropdown-menu-end">
+                                                        <li>
+                                                            <a class="dropdown-item" asp-controller="Home" asp-action="Index" asp-route-sprintId="@cycle.SprintId">Open</a>
+                                                        </li>
+                                                        @if (canManageVersions)
+                                                        {
+                                                            <li>
+                                                                <button type="button"
+                                                                        class="dropdown-item"
+                                                                        data-bs-toggle="modal"
+                                                                        data-bs-target="#makeTemplateModal"
+                                                                        data-source-cycle-id="@cycle.SprintId"
+                                                                        data-source-cycle-name="@cycle.BuildNr"
+                                                                        onclick="prepareMakeTemplateModal(this)">
+                                                                    Make template
+                                                                </button>
+                                                            </li>
+                                                        }
+                                                        @if (canArchiveCycles && !Model.ShowArchived)
+                                                        {
+                                                            <li>
+                                                                <form method="post" asp-action="Archive" asp-controller="TestPlanVersion" onsubmit="return confirm('Archive this build? It will be hidden from the active versions list.');">
+                                                                    @Html.AntiForgeryToken()
+                                                                    <input type="hidden" name="sprintId" value="@cycle.SprintId" />
+                                                                    <button type="submit" class="dropdown-item">Archive</button>
+                                                                </form>
+                                                            </li>
+                                                        }
+                                                        @if (canManageVersions && Model.ShowArchived)
+                                                        {
+                                                            <li>
+                                                                <form method="post" asp-action="Restore" asp-controller="TestPlanVersion">
+                                                                    @Html.AntiForgeryToken()
+                                                                    <input type="hidden" name="sprintId" value="@cycle.SprintId" />
+                                                                    <button type="submit" class="dropdown-item">Restore</button>
+                                                                </form>
+                                                            </li>
+                                                        }
+                                                        @if (canManageVersions)
+                                                        {
+                                                            <li><hr class="dropdown-divider" /></li>
+                                                            <li>
+                                                                <form method="post" asp-action="Delete" asp-controller="TestPlanVersion" onsubmit="return confirm('This version and all underlying tests will be deleted. Continue?');">
+                                                                    @Html.AntiForgeryToken()
+                                                                    <input type="hidden" name="sprintId" value="@cycle.SprintId" />
+                                                                    <button type="submit" class="dropdown-item text-danger">Delete</button>
+                                                                </form>
+                                                            </li>
+                                                        }
+                                                    </ul>
                                                 </div>
                                             </td>
                                         </tr>
@@ -352,4 +378,56 @@ else
             </div>
         </div>
     }
+}
+
+@if (canManageVersions)
+{
+    <div class="modal fade" id="makeTemplateModal" tabindex="-1" aria-labelledby="makeTemplateModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="makeTemplateModalLabel">Make Template</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="post" asp-action="CreateTemplateFromCycle" asp-controller="TestPlanVersion">
+                    @Html.AntiForgeryToken()
+                    <div class="modal-body">
+                        <input type="hidden" id="makeTemplateSourceCycleId" name="SourceCycleSprintId" />
+
+                        <div class="mb-2 small text-muted" id="makeTemplateSourceCycleText"></div>
+
+                        <label for="makeTemplateNameInput" class="form-label">Template name</label>
+                        <input id="makeTemplateNameInput" type="text" name="BuildNr" class="form-control" placeholder="Enter template name" required />
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Create template</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        function prepareMakeTemplateModal(trigger) {
+            var sourceCycleId = trigger.getAttribute('data-source-cycle-id');
+            var sourceCycleName = trigger.getAttribute('data-source-cycle-name') || '';
+
+            var sourceCycleIdInput = document.getElementById('makeTemplateSourceCycleId');
+            var templateNameInput = document.getElementById('makeTemplateNameInput');
+            var sourceCycleText = document.getElementById('makeTemplateSourceCycleText');
+
+            if (!sourceCycleIdInput || !templateNameInput || !sourceCycleText) {
+                return;
+            }
+
+            sourceCycleIdInput.value = sourceCycleId || '';
+            sourceCycleText.textContent = sourceCycleName ? 'Source cycle: ' + sourceCycleName : '';
+            templateNameInput.value = sourceCycleName ? sourceCycleName + '-template' : '';
+            templateNameInput.focus();
+            templateNameInput.select();
+        }
+    </script>
 }

@@ -29,15 +29,14 @@
                         <th>Email</th>
                         <th style="width: 340px;">Role</th>
                         <th style="width: 220px;">Account Status</th>
-                        <th style="width: 220px;">Lock Status</th>
-                        <th style="width: 300px;">Actions</th>
+                        <th style="width: 340px;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @if (!Model.Users.Any())
                     {
                         <tr>
-                            <td colspan="5" class="text-center text-muted py-4">No users found.</td>
+                            <td colspan="4" class="text-center text-muted py-4">No users found.</td>
                         </tr>
                     }
                     else
@@ -69,49 +68,45 @@
                                     }
                                 </td>
                                 <td>
-                                    @if (user.IsLockedOut)
+                                    @if (user.IsCurrentUser)
                                     {
-                                        <span class="badge text-bg-danger">Locked</span>
+                                        <span class="text-muted small">Current account</span>
                                     }
                                     else
                                     {
-                                        <span class="badge text-bg-info">Unlocked</span>
+                                        <div class="user-actions">
+                                            @if (user.IsActive)
+                                            {
+                                                <form asp-action="UpdateActive" asp-controller="UserManagement" method="post" class="action-form">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="UserId" value="@user.UserId" />
+                                                    <input type="hidden" name="IsActive" value="false" />
+                                                    <button class="btn btn-sm btn-outline-warning action-btn" type="submit" title="Deactivate user">
+                                                        <i class="bi bi-lock me-1"></i>Deactivate
+                                                    </button>
+                                                </form>
+                                            }
+                                            else
+                                            {
+                                                <form asp-action="UpdateActive" asp-controller="UserManagement" method="post" class="action-form">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="UserId" value="@user.UserId" />
+                                                    <input type="hidden" name="IsActive" value="true" />
+                                                    <button class="btn btn-sm btn-outline-success action-btn" type="submit" title="Activate user">
+                                                        <i class="bi bi-unlock me-1"></i>Activate
+                                                    </button>
+                                                </form>
+                                            }
+
+                                            <form asp-action="DeleteUser" asp-controller="UserManagement" method="post" class="action-form" onsubmit="return confirm('Delete this account permanently?');">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="UserId" value="@user.UserId" />
+                                                <button class="btn btn-sm btn-outline-danger action-btn" type="submit" title="Delete account">
+                                                    <i class="bi bi-trash me-1"></i>Delete
+                                                </button>
+                                            </form>
+                                        </div>
                                     }
-                                </td>
-                                <td>
-                                    <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
-                                        @if (user.IsActive)
-                                        {
-                                            <form asp-action="UpdateActive" asp-controller="UserManagement" method="post" style="margin: 0;">
-                                                @Html.AntiForgeryToken()
-                                                <input type="hidden" name="UserId" value="@user.UserId" />
-                                                <input type="hidden" name="IsActive" value="false" />
-                                                <button class="btn btn-sm btn-outline-warning" type="submit" title="Deactivate user">
-                                                    <i class="bi bi-lock me-1"></i>Deactivate
-                                                </button>
-                                            </form>
-                                        }
-                                        else
-                                        {
-                                            <form asp-action="UpdateActive" asp-controller="UserManagement" method="post" style="margin: 0;">
-                                                @Html.AntiForgeryToken()
-                                                <input type="hidden" name="UserId" value="@user.UserId" />
-                                                <input type="hidden" name="IsActive" value="true" />
-                                                <button class="btn btn-sm btn-outline-success" type="submit" title="Activate user">
-                                                    <i class="bi bi-unlock me-1"></i>Activate
-                                                </button>
-                                            </form>
-                                        }
-                                        
-                                        <form asp-action="UpdateLock" asp-controller="UserManagement" method="post" style="margin: 0;">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="UserId" value="@user.UserId" />
-                                            <input type="hidden" name="LockUser" value="@(user.IsLockedOut ? "false" : "true")" />
-                                            <button class="btn btn-sm @(user.IsLockedOut ? "btn-outline-info" : "btn-outline-danger")" type="submit" title="@(user.IsLockedOut ? "Unlock account" : "Lock account")">
-                                                @(user.IsLockedOut ? "Unlock" : "Lock")
-                                            </button>
-                                        </form>
-                                    </div>
                                 </td>
                             </tr>
                         }
@@ -144,6 +139,23 @@
         min-width: 72px;
     }
 
+    .user-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        flex-wrap: nowrap;
+        white-space: nowrap;
+    }
+
+    .action-form {
+        margin: 0;
+    }
+
+    .action-btn {
+        width: 110px;
+        text-align: center;
+    }
+
     @@media (max-width: 768px) {
         .role-form {
             min-width: 250px;
@@ -151,6 +163,15 @@
 
         .role-select {
             min-width: 170px;
+        }
+
+        .user-actions {
+            flex-wrap: wrap;
+            white-space: normal;
+        }
+
+        .action-btn {
+            width: 100px;
         }
     }
 </style>

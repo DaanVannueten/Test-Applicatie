@@ -79,12 +79,33 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .current-user-pill {
+  display: inline-flex;
+  align-items: center;
   color: #0f172a !important;
   background: #e2e8f0;
   border: 1px solid #cbd5e1;
   border-radius: 0.5rem;
   padding: 0.45rem 0.8rem !important;
   font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.current-user-pill:hover,
+.current-user-pill:focus-visible {
+  background: #dbe6f5;
+  border-color: #94a3b8;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
+  text-decoration: none;
+}
+
+.current-user-pill:active {
+  transform: translateY(1px);
+}
+
+.current-user-pill-cta {
+  font-size: 0.78rem;
+  opacity: 0.8;
 }
 
 .dropdown-menu {

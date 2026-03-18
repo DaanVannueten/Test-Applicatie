@@ -1,6 +1,4 @@
 using System.Linq;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TestPlanManager.Data;
@@ -8,23 +6,10 @@ using TestPlanManager.Models;
 
 namespace TestPlanManager.Controllers
 {
-    [Authorize]
     public class TestCategoryMvcController : Controller
     {
         private readonly TestPlanContext _ctx;
-        private readonly IWebHostEnvironment _environment;
-        private static readonly HashSet<string> AllowedMediaExtensions = new(StringComparer.OrdinalIgnoreCase)
-        {
-            ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".mp4", ".webm", ".mov", ".avi"
-        };
-
-        private const long MaxMediaFileSizeBytes = 50 * 1024 * 1024;
-
-        public TestCategoryMvcController(TestPlanContext ctx, IWebHostEnvironment environment)
-        {
-            _ctx = ctx;
-            _environment = environment;
-        }
+        public TestCategoryMvcController(TestPlanContext ctx) => _ctx = ctx;
 
         // list of all categories (maybe redirect to dashboard)
         public IActionResult Index()
@@ -46,68 +31,41 @@ namespace TestPlanManager.Controllers
         // action to edit test status
         public async Task<IActionResult> EditTest(int id)
         {
-            var test = await _ctx.Tests
-                .Include(t => t.TestCategory)
-                .ThenInclude(tc => tc.Sprint)
-                .FirstOrDefaultAsync(t => t.TestId == id);
+            var test = await _ctx.Tests.FindAsync(id);
             if (test == null) return NotFound();
             return View(test);
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> EditTest(Test model, IFormFile? mediaFile, bool removeMedia = false)
+        public async Task<IActionResult> EditTest(int TestId, int TestCategoryId, string Name, ScopeStatus ScopeStatus, ExecutionStatus ExecutionStatus, string Production, string Comments, string MediaUrl)
         {
-            var test = await _ctx.Tests.FindAsync(model.TestId);
+            var test = await _ctx.Tests.FindAsync(TestId);
             if (test == null) return NotFound();
 
             var previousStatus = test.ExecutionStatus;
 
             var category = await _ctx.TestCategories
                 .Include(tc => tc.Tests)
-                .FirstOrDefaultAsync(tc => tc.TestCategoryId == model.TestCategoryId);
+                .FirstOrDefaultAsync(tc => tc.TestCategoryId == TestCategoryId);
             if (category == null) return NotFound();
 
-            test.Name = TestTitleSanitizer.Clean(model.Name);
-            test.ScopeStatus = model.ScopeStatus;
-            test.ExecutionStatus = model.ExecutionStatus;
-            test.Production = model.Production ?? "";
-            test.Comments = model.Comments ?? "";
+            test.Name = TestTitleSanitizer.Clean(Name);
+            test.ScopeStatus = ScopeStatus;
+            test.ExecutionStatus = ExecutionStatus;
+            test.Production = Production ?? "";
+            test.Comments = Comments ?? "";
+            test.MediaUrl = MediaUrl ?? "";
 
-            if (removeMedia)
-            {
-                DeleteMediaFile(test.MediaUrl);
-                test.MediaUrl = null;
-            }
-
-            if (mediaFile != null && mediaFile.Length > 0)
-            {
-                var uploadResult = await SaveMediaFileAsync(mediaFile);
-                if (!uploadResult.Succeeded)
-                {
-                    ModelState.AddModelError("", uploadResult.ErrorMessage!);
-                    model.MediaUrl = test.MediaUrl;
-                    model.TestCategory = category;
-                    return View(model);
-                }
-
-                DeleteMediaFile(test.MediaUrl);
-                test.MediaUrl = uploadResult.MediaUrl;
-            }
-
-            if (model.ExecutionStatus != Models.ExecutionStatus.NotRun)
+            if (ExecutionStatus != Models.ExecutionStatus.NotRun)
             {
                 if (previousStatus == Models.ExecutionStatus.NotRun || !test.ExecutedAt.HasValue)
                 {
                     test.ExecutedAt = DateTime.UtcNow;
                 }
-
-                test.LastExecutedBy = User.Identity?.Name;
             }
             else
             {
                 test.ExecutedAt = null;
-                test.LastExecutedBy = null;
             }
 
             category.TestDate = category.Tests
@@ -117,43 +75,26 @@ namespace TestPlanManager.Controllers
 
             _ctx.Tests.Update(test);
             await _ctx.SaveChangesAsync();
-            var detailsUrl = Url.Action("Details", new { id = model.TestCategoryId });
-            return Redirect($"{detailsUrl}#test-{model.TestId}");
+            var detailsUrl = Url.Action("Details", new { id = TestCategoryId });
+            return Redirect($"{detailsUrl}#test-{TestId}");
         }
 
         [HttpGet]
         public async Task<IActionResult> CreateTest(int testCategoryId)
         {
-            var category = await _ctx.TestCategories
-                .Include(tc => tc.Sprint)
-                .FirstOrDefaultAsync(tc => tc.TestCategoryId == testCategoryId);
+            var category = await _ctx.TestCategories.FindAsync(testCategoryId);
             if (category == null) return NotFound();
 
-            var test = new Test
-            {
-                TestCategoryId = testCategoryId,
-                TestCategory = category
-            };
+            var test = new Test { TestCategoryId = testCategoryId };
             return View(test);
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreateTest(Test model, IFormFile? mediaFile)
+        public async Task<IActionResult> CreateTest(Test model)
         {
-            var category = await _ctx.TestCategories
-                .Include(tc => tc.Sprint)
-                .FirstOrDefaultAsync(tc => tc.TestCategoryId == model.TestCategoryId);
-
-            if (category == null)
-            {
-                return NotFound();
-            }
-
             if (string.IsNullOrWhiteSpace(model.Name) || string.IsNullOrWhiteSpace(model.Description))
             {
                 ModelState.AddModelError("", "Name and Description are required.");
-                model.TestCategory = category;
                 return View(model);
             }
 
@@ -164,104 +105,23 @@ namespace TestPlanManager.Controllers
             model.Comments = model.Comments ?? "";
             model.MediaUrl = model.MediaUrl ?? "";
 
-            if (mediaFile != null && mediaFile.Length > 0)
-            {
-                var uploadResult = await SaveMediaFileAsync(mediaFile);
-                if (!uploadResult.Succeeded)
-                {
-                    ModelState.AddModelError("", uploadResult.ErrorMessage!);
-                    model.TestCategory = category;
-                    return View(model);
-                }
-
-                model.MediaUrl = uploadResult.MediaUrl;
-            }
-
             _ctx.Tests.Add(model);
             await _ctx.SaveChangesAsync();
-
-            category = await _ctx.TestCategories
-                .Include(tc => tc.Sprint)
-                .FirstOrDefaultAsync(tc => tc.TestCategoryId == model.TestCategoryId);
-
-            if (category?.Sprint?.IsTemplate == true)
-            {
-                await SyncTemplateTestCaseToActiveCyclesAsync(category, model);
-            }
-
             return RedirectToAction("Details", new { id = model.TestCategoryId });
         }
 
         [HttpPost]
-        [Authorize(Roles = AppRoles.Managers)]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteTest(int testId, int testCategoryId)
         {
             var test = await _ctx.Tests.FindAsync(testId);
             if (test == null) return NotFound();
 
-            DeleteMediaFile(test.MediaUrl);
             _ctx.Tests.Remove(test);
             await _ctx.SaveChangesAsync();
             return RedirectToAction("Details", new { id = testCategoryId });
         }
 
-        private async Task<(bool Succeeded, string? MediaUrl, string? ErrorMessage)> SaveMediaFileAsync(IFormFile mediaFile)
-        {
-            if (mediaFile.Length > MaxMediaFileSizeBytes)
-            {
-                return (false, null, "Media file is too large. Maximum allowed size is 50MB.");
-            }
-
-            var extension = Path.GetExtension(mediaFile.FileName);
-            if (string.IsNullOrWhiteSpace(extension) || !AllowedMediaExtensions.Contains(extension))
-            {
-                return (false, null, "Unsupported file type. Allowed formats: JPG, PNG, GIF, WEBP, BMP, MP4, WEBM, MOV, AVI.");
-            }
-
-            var webRoot = _environment.WebRootPath;
-            if (string.IsNullOrWhiteSpace(webRoot))
-            {
-                webRoot = Path.Combine(_environment.ContentRootPath, "wwwroot");
-            }
-
-            var targetDirectory = Path.Combine(webRoot, "uploads", "test-media");
-            Directory.CreateDirectory(targetDirectory);
-
-            var fileName = $"{Guid.NewGuid():N}{extension.ToLowerInvariant()}";
-            var filePath = Path.Combine(targetDirectory, fileName);
-
-            await using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await mediaFile.CopyToAsync(stream);
-            }
-
-            return (true, $"/uploads/test-media/{fileName}", null);
-        }
-
-        private void DeleteMediaFile(string? mediaUrl)
-        {
-            if (string.IsNullOrWhiteSpace(mediaUrl) || !mediaUrl.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase))
-            {
-                return;
-            }
-
-            var webRoot = _environment.WebRootPath;
-            if (string.IsNullOrWhiteSpace(webRoot))
-            {
-                webRoot = Path.Combine(_environment.ContentRootPath, "wwwroot");
-            }
-
-            var relativePath = mediaUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
-            var fullPath = Path.Combine(webRoot, relativePath);
-            if (System.IO.File.Exists(fullPath))
-            {
-                System.IO.File.Delete(fullPath);
-            }
-        }
-
         [HttpPost]
-        [Authorize(Roles = AppRoles.Managers)]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteCategory(int id)
         {
@@ -284,7 +144,6 @@ namespace TestPlanManager.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = AppRoles.Managers)]
         public async Task<IActionResult> EditCategory(int id, string? returnUrl)
         {
             var category = await _ctx.TestCategories
@@ -315,7 +174,6 @@ namespace TestPlanManager.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = AppRoles.Managers)]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditCategory(EditCategoryInputModel model)
         {
@@ -352,7 +210,6 @@ namespace TestPlanManager.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = AppRoles.Managers)]
         public async Task<IActionResult> CreateCategory(int sprintId, string? returnUrl)
         {
             var sprint = await _ctx.Sprints.FindAsync(sprintId);
@@ -377,7 +234,6 @@ namespace TestPlanManager.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = AppRoles.Managers)]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateCategory(CreateCategoryInputModel model)
         {
@@ -414,130 +270,12 @@ namespace TestPlanManager.Controllers
             _ctx.TestCategories.Add(category);
             await _ctx.SaveChangesAsync();
 
-            if (sprint.IsTemplate)
-            {
-                await SyncTemplateCategoryToActiveCyclesAsync(sprint.SprintId, category);
-            }
-
             if (!string.IsNullOrWhiteSpace(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
             {
                 return LocalRedirect(model.ReturnUrl);
             }
 
             return RedirectToAction("Index", "Home", new { sprintId = model.SprintId });
-        }
-
-        private async Task SyncTemplateCategoryToActiveCyclesAsync(int templateSprintId, TestCategory templateCategory)
-        {
-            var activeCycleIds = await _ctx.Sprints
-                .Where(s => !s.IsArchived && !s.IsTemplate && s.SourceTemplateSprintId == templateSprintId)
-                .Select(s => s.SprintId)
-                .ToListAsync();
-
-            if (activeCycleIds.Count == 0)
-            {
-                return;
-            }
-
-            foreach (var cycleId in activeCycleIds)
-            {
-                var exists = await _ctx.TestCategories.AnyAsync(tc =>
-                    tc.SprintId == cycleId &&
-                    tc.Name == templateCategory.Name &&
-                    tc.Sequence == templateCategory.Sequence);
-
-                if (exists)
-                {
-                    continue;
-                }
-
-                _ctx.TestCategories.Add(new TestCategory
-                {
-                    SprintId = cycleId,
-                    Name = templateCategory.Name,
-                    Description = templateCategory.Description,
-                    Department = templateCategory.Department,
-                    Sequence = templateCategory.Sequence,
-                    TotalTest = 0,
-                    OutOfScope = 0,
-                    Failed = 0,
-                    Blocked = 0,
-                    Passed = 0,
-                    PercentagePassed = 0,
-                    TestDate = null
-                });
-            }
-
-            await _ctx.SaveChangesAsync();
-        }
-
-        private async Task SyncTemplateTestCaseToActiveCyclesAsync(TestCategory templateCategory, Test templateTest)
-        {
-            var activeCycleIds = await _ctx.Sprints
-                .Where(s => !s.IsArchived && !s.IsTemplate && s.SourceTemplateSprintId == templateCategory.SprintId)
-                .Select(s => s.SprintId)
-                .ToListAsync();
-
-            if (activeCycleIds.Count == 0)
-            {
-                return;
-            }
-
-            foreach (var cycleId in activeCycleIds)
-            {
-                var targetCategory = await _ctx.TestCategories
-                    .FirstOrDefaultAsync(tc =>
-                        tc.SprintId == cycleId &&
-                        tc.Name == templateCategory.Name &&
-                        tc.Sequence == templateCategory.Sequence);
-
-                if (targetCategory == null)
-                {
-                    targetCategory = new TestCategory
-                    {
-                        SprintId = cycleId,
-                        Name = templateCategory.Name,
-                        Description = templateCategory.Description,
-                        Department = templateCategory.Department,
-                        Sequence = templateCategory.Sequence,
-                        TotalTest = 0,
-                        OutOfScope = 0,
-                        Failed = 0,
-                        Blocked = 0,
-                        Passed = 0,
-                        PercentagePassed = 0,
-                        TestDate = null
-                    };
-
-                    _ctx.TestCategories.Add(targetCategory);
-                    await _ctx.SaveChangesAsync();
-                }
-
-                var exists = await _ctx.Tests.AnyAsync(t =>
-                    t.TestCategoryId == targetCategory.TestCategoryId &&
-                    t.TemplateTestCaseId == templateTest.TestId);
-
-                if (exists)
-                {
-                    continue;
-                }
-
-                _ctx.Tests.Add(new Test
-                {
-                    TestCategoryId = targetCategory.TestCategoryId,
-                    TemplateTestCaseId = templateTest.TestId,
-                    IsTemplateDerived = true,
-                    Name = templateTest.Name,
-                    Description = templateTest.Description,
-                    ScopeStatus = templateTest.ScopeStatus,
-                    ExecutionStatus = ExecutionStatus.NotRun,
-                    Comments = string.Empty,
-                    MediaUrl = templateTest.MediaUrl,
-                    Production = templateTest.Production
-                });
-            }
-
-            await _ctx.SaveChangesAsync();
         }
     }
 }

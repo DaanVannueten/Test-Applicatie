@@ -48,10 +48,22 @@ public static class IdentitySeeder
         }
         else
         {
-            // Ensure existing admin user is active
+            var needsUpdate = false;
+
             if (!adminUser.IsActive)
             {
                 adminUser.IsActive = true;
+                needsUpdate = true;
+            }
+
+            if (adminUser.CreatedAtUtc == default)
+            {
+                adminUser.CreatedAtUtc = DateTime.UtcNow;
+                needsUpdate = true;
+            }
+
+            if (needsUpdate)
+            {
                 await userManager.UpdateAsync(adminUser);
             }
         }

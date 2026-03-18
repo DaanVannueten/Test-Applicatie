@@ -12,8 +12,8 @@ public class UserAccountRowViewModel
     public string UserId { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
-    public bool IsLockedOut { get; set; }
     public bool IsActive { get; set; }
+    public bool IsCurrentUser { get; set; }
 }
 
 public class UpdateUserRoleInputModel
@@ -25,18 +25,16 @@ public class UpdateUserRoleInputModel
     public string Role { get; set; } = string.Empty;
 }
 
-public class UpdateUserLockInputModel
-{
-    [Required]
-    public string UserId { get; set; } = string.Empty;
-
-    public bool LockUser { get; set; }
-}
-
 public class UpdateUserActiveStatusInputModel
 {
     [Required]
     public string UserId { get; set; } = string.Empty;
 
     public bool IsActive { get; set; }
+}
+
+public class DeleteUserInputModel
+{
+    [Required]
+    public string UserId { get; set; } = string.Empty;
 }

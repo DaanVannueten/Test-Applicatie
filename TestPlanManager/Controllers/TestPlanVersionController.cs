@@ -33,33 +33,7 @@ namespace TestPlanManager.Controllers
 
             var defaultSprintId = _defaultVersionStore.GetDefaultSprintId();
 
-            var versions = await _ctx.Sprints
-                .Where(s => !s.IsArchived)
-                .Include(s => s.TestCategories)
-                .ThenInclude(tc => tc.Tests)
-                .Select(s => new TestPlanVersionDto
-                {
-                    SprintId = s.SprintId,
-                    BuildNr = s.BuildNr,
-                    IsArchived = s.IsArchived,
-                    IsTemplate = s.IsTemplate,
-                    SourceTemplateSprintId = s.SourceTemplateSprintId,
-                    CategoryCount = s.TestCategories.Count,
-                    TestCount = s.TestCategories.Sum(tc => tc.Tests.Count),
-                    LastExecutionDate = s.TestCategories
-                        .Where(tc => tc.TestDate.HasValue)
-                        .Select(tc => tc.TestDate)
-                        .OrderByDescending(d => d)
-                        .FirstOrDefault(),
-                    LastWorkedBy = s.TestCategories
-                        .SelectMany(tc => tc.Tests)
-                        .Where(t => t.ExecutionStatus != ExecutionStatus.NotRun && t.ExecutedAt.HasValue)
-                        .OrderByDescending(t => t.ExecutedAt)
-                        .Select(t => t.LastExecutedBy)
-                        .FirstOrDefault()
-                })
-                .OrderByDescending(v => v.SprintId)
-                .ToListAsync();
+            var versions = await BuildVersionQuery(showArchived: false).ToListAsync();
 
             var vm = new TestPlanVersionPageViewModel
             {
@@ -79,33 +53,7 @@ namespace TestPlanManager.Controllers
                 return Forbid();
             }
 
-            var versions = await _ctx.Sprints
-                .Where(s => s.IsArchived)
-                .Include(s => s.TestCategories)
-                .ThenInclude(tc => tc.Tests)
-                .Select(s => new TestPlanVersionDto
-                {
-                    SprintId = s.SprintId,
-                    BuildNr = s.BuildNr,
-                    IsArchived = s.IsArchived,
-                    IsTemplate = s.IsTemplate,
-                    SourceTemplateSprintId = s.SourceTemplateSprintId,
-                    CategoryCount = s.TestCategories.Count,
-                    TestCount = s.TestCategories.Sum(tc => tc.Tests.Count),
-                    LastExecutionDate = s.TestCategories
-                        .Where(tc => tc.TestDate.HasValue)
-                        .Select(tc => tc.TestDate)
-                        .OrderByDescending(d => d)
-                        .FirstOrDefault(),
-                    LastWorkedBy = s.TestCategories
-                        .SelectMany(tc => tc.Tests)
-                        .Where(t => t.ExecutionStatus != ExecutionStatus.NotRun && t.ExecutedAt.HasValue)
-                        .OrderByDescending(t => t.ExecutedAt)
-                        .Select(t => t.LastExecutedBy)
-                        .FirstOrDefault()
-                })
-                .OrderByDescending(v => v.SprintId)
-                .ToListAsync();
+            var versions = await BuildVersionQuery(showArchived: true).ToListAsync();
 
             var vm = new TestPlanVersionPageViewModel
             {
@@ -460,6 +408,35 @@ namespace TestPlanManager.Controllers
 
             TempData["SuccessMessage"] = $"Build {sprint.BuildNr} has been restored.";
             return RedirectToAction(nameof(Archived));
+        }
+
+        private IQueryable<TestPlanVersionDto> BuildVersionQuery(bool showArchived)
+        {
+            return _ctx.Sprints
+                .AsNoTracking()
+                .Where(s => s.IsArchived == showArchived)
+                .Select(s => new TestPlanVersionDto
+                {
+                    SprintId = s.SprintId,
+                    BuildNr = s.BuildNr,
+                    IsArchived = s.IsArchived,
+                    IsTemplate = s.IsTemplate,
+                    SourceTemplateSprintId = s.SourceTemplateSprintId,
+                    CategoryCount = s.TestCategories.Count,
+                    TestCount = s.TestCategories.Sum(tc => tc.Tests.Count),
+                    LastExecutionDate = s.TestCategories
+                        .Where(tc => tc.TestDate.HasValue)
+                        .Select(tc => tc.TestDate)
+                        .OrderByDescending(d => d)
+                        .FirstOrDefault(),
+                    LastWorkedBy = s.TestCategories
+                        .SelectMany(tc => tc.Tests)
+                        .Where(t => t.ExecutionStatus != ExecutionStatus.NotRun && t.ExecutedAt.HasValue)
+                        .OrderByDescending(t => t.ExecutedAt)
+                        .Select(t => t.LastExecutedBy)
+                        .FirstOrDefault()
+                })
+                .OrderByDescending(v => v.SprintId);
         }
     }
 }

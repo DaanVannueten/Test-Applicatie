@@ -20,6 +20,7 @@ public class TemplateController : Controller
     public async Task<IActionResult> Index()
     {
         var templates = await _ctx.TestTemplates
+            .AsNoTracking()
             .Include(t => t.TestCases)
             .Include(t => t.Sprints)
             .OrderBy(t => t.ProductName)
@@ -77,6 +78,7 @@ public class TemplateController : Controller
     public async Task<IActionResult> Details(int id)
     {
         var template = await _ctx.TestTemplates
+            .AsNoTracking()
             .FirstOrDefaultAsync(t => t.TestTemplateId == id);
         if (template == null)
         {
@@ -84,6 +86,7 @@ public class TemplateController : Controller
         }
 
         var testCases = await _ctx.TemplateTestCases
+            .AsNoTracking()
             .Where(tc => tc.TestTemplateId == id)
             .OrderBy(tc => tc.Sequence)
             .ThenBy(tc => tc.TemplateTestCaseId)

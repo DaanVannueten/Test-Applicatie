@@ -16,12 +16,16 @@ namespace TestPlanManager.Controllers
 
         [HttpGet]
         public async Task<IEnumerable<Sprint>> GetAll() =>
-            await _ctx.Sprints.Include(s => s.TestCategories).ToListAsync();
+            await _ctx.Sprints
+                .AsNoTracking()
+                .Include(s => s.TestCategories)
+                .ToListAsync();
 
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(int id)
         {
             var sprint = await _ctx.Sprints
+                .AsNoTracking()
                 .Include(s => s.TestCategories)
                 .FirstOrDefaultAsync(s => s.SprintId == id);
             return sprint == null ? NotFound() : Ok(sprint);

@@ -18,6 +18,7 @@ namespace TestPlanManager.Controllers
         public async Task<IActionResult> GetDetail(int id)
         {
             var cat = await _ctx.TestCategories
+                .AsNoTracking()
                 .Include(tc => tc.Tests)
                 .FirstOrDefaultAsync(tc => tc.TestCategoryId == id);
 
@@ -30,6 +31,7 @@ namespace TestPlanManager.Controllers
         public async Task<IActionResult> SprintSummary(int sprintId)
         {
             var categories = await _ctx.TestCategories
+                .AsNoTracking()
                 .Where(tc => tc.SprintId == sprintId)
                 .Select(tc => new
                 {

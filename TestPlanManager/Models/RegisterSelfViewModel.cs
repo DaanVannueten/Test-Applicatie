@@ -16,6 +16,7 @@ public class RegisterSelfViewModel
     [Required]
     [DataType(DataType.Password)]
     [Compare(nameof(Password), ErrorMessage = "Password and confirmation do not match.")]
+    [Display(Name = "Confirm Password")]
     public string ConfirmPassword { get; set; } = string.Empty;
 
     [Required]

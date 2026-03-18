@@ -14,7 +14,7 @@
     var categoryUrl = Url.RouteUrl("test-category-details", new { id = Model.TestCategoryId });
     var breadcrumbs = new System.Collections.Generic.List<TestPlanManager.Models.BreadcrumbItem>
     {
-        new() { Label = "Versions & Templates", Url = Url.Action("Index", "TestPlanVersion") },
+        new() { Label = "Templates", Url = Url.Action("Index", "TestPlanVersion") },
         new() { Label = $"{(isTemplateView ? "Template" : "Build")} {buildNr}", Url = buildUrl },
         new() { Label = categoryName, Url = categoryUrl },
         new() { Label = $"Test TC-{Model.TestId:D3}", IsCurrent = true }
@@ -97,18 +97,36 @@
 
                         @if (!string.IsNullOrWhiteSpace(Model.MediaUrl))
                         {
-                            <div class="mb-4">
+                            <div class="mb-4 current-media-section">
                                 <label class="form-label">Current Media</label>
-                                @if (Model.MediaUrl.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase) || Model.MediaUrl.EndsWith(".webm", StringComparison.OrdinalIgnoreCase) || Model.MediaUrl.EndsWith(".mov", StringComparison.OrdinalIgnoreCase) || Model.MediaUrl.EndsWith(".avi", StringComparison.OrdinalIgnoreCase))
-                                {
-                                    <video controls class="w-100 rounded" style="max-height: 340px; object-fit: contain; background: #0f172a;">
-                                        <source src="@Model.MediaUrl" />
-                                    </video>
-                                }
-                                else
-                                {
-                                    <img src="@Model.MediaUrl" alt="Test media" class="img-fluid rounded border" style="max-height: 340px; object-fit: contain;" />
-                                }
+                                <div class="current-media-card">
+                                    @if (Model.MediaUrl.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase) || Model.MediaUrl.EndsWith(".webm", StringComparison.OrdinalIgnoreCase) || Model.MediaUrl.EndsWith(".mov", StringComparison.OrdinalIgnoreCase) || Model.MediaUrl.EndsWith(".avi", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <button type="button"
+                                                class="media-preview-trigger"
+                                                title="Open media in large view"
+                                                onclick="openMediaPreview(true, '@Model.MediaUrl')">
+                                            <video class="media-preview-content" muted playsinline preload="metadata">
+                                                <source src="@Model.MediaUrl" />
+                                            </video>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button type="button"
+                                                class="media-preview-trigger"
+                                                title="Open media in large view"
+                                                onclick="openMediaPreview(false, '@Model.MediaUrl')">
+                                            <img src="@Model.MediaUrl" alt="Test media" class="media-preview-content" />
+                                        </button>
+                                    }
+
+                                    <div class="mt-2">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="openMediaPreview(@(Model.MediaUrl.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase) || Model.MediaUrl.EndsWith(".webm", StringComparison.OrdinalIgnoreCase) || Model.MediaUrl.EndsWith(".mov", StringComparison.OrdinalIgnoreCase) || Model.MediaUrl.EndsWith(".avi", StringComparison.OrdinalIgnoreCase) ? "true" : "false"), '@Model.MediaUrl')">
+                                            <i class="bi bi-arrows-fullscreen me-1"></i>Open large view
+                                        </button>
+                                    </div>
+                                </div>
                                 <div class="form-check mt-2">
                                     <input class="form-check-input" type="checkbox" id="removeMedia" name="removeMedia" value="true" />
                                     <label class="form-check-label" for="removeMedia">Remove current media</label>
@@ -142,3 +160,106 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="mediaPreviewModal" tabindex="-1" aria-labelledby="mediaPreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="mediaPreviewModalLabel">Media Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center bg-dark">
+                <img id="mediaPreviewImage" class="img-fluid d-none" alt="Preview" style="max-height: 75vh; object-fit: contain;" />
+                <video id="mediaPreviewVideo" controls class="w-100 d-none" style="max-height: 75vh; object-fit: contain; background: #000;"></video>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .current-media-section {
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+    }
+
+    .current-media-section .form-label {
+        margin-bottom: 0;
+    }
+
+    .current-media-card {
+        display: inline-block;
+        padding: 0.6rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.75rem;
+        background: #f8fafc;
+    }
+
+    .media-preview-trigger {
+        border: 0;
+        padding: 0;
+        margin: 0;
+        background: transparent;
+        cursor: zoom-in;
+        display: block;
+        border-radius: 0.6rem;
+        overflow: hidden;
+    }
+
+    .media-preview-content {
+        display: block;
+        width: min(420px, 100%);
+        max-height: 340px;
+        object-fit: contain;
+        background: #0f172a;
+        border-radius: 0.6rem;
+    }
+
+    .media-preview-trigger:focus-visible {
+        outline: 3px solid rgba(59, 130, 246, 0.35);
+        outline-offset: 2px;
+    }
+</style>
+
+@section Scripts {
+    <script>
+        function openMediaPreview(isVideo, sourceUrl) {
+            var modalElement = document.getElementById('mediaPreviewModal');
+            var imageElement = document.getElementById('mediaPreviewImage');
+            var videoElement = document.getElementById('mediaPreviewVideo');
+
+            if (!modalElement || !imageElement || !videoElement) {
+                return;
+            }
+
+            if (isVideo) {
+                imageElement.classList.add('d-none');
+                imageElement.removeAttribute('src');
+
+                videoElement.classList.remove('d-none');
+                videoElement.src = sourceUrl;
+                videoElement.load();
+            } else {
+                videoElement.classList.add('d-none');
+                videoElement.pause();
+                videoElement.removeAttribute('src');
+
+                imageElement.classList.remove('d-none');
+                imageElement.src = sourceUrl;
+            }
+
+            var modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+            modal.show();
+        }
+
+        document.getElementById('mediaPreviewModal')?.addEventListener('hidden.bs.modal', function () {
+            var videoElement = document.getElementById('mediaPreviewVideo');
+            if (!videoElement) {
+                return;
+            }
+
+            videoElement.pause();
+            videoElement.removeAttribute('src');
+        });
+    </script>
+}

@@ -24,10 +24,12 @@
 
         var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? string.Empty;
         var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? string.Empty;
+        var hidePrimaryNavigation = currentController == "Account"
+            && (currentAction == "Login" || currentAction == "RegisterSelf" || currentAction == "Register");
         var currentPageLabel = currentController switch
         {
             "Home" => "Dashboard",
-            "TestPlanVersion" => "Versions and templates",
+            "TestPlanVersion" => "Templates",
             "TestCategoryMvc" => "Categories",
             "UserManagement" => "User management",
             "Account" when currentAction == "Login" => "Login",
@@ -47,23 +49,27 @@
                 </button>
                 <div class="collapse navbar-collapse justify-content-between flex-wrap gap-2" id="mainNavigation">
                     <ul class="navbar-nav flex-grow-1 ms-3 mt-2 mt-lg-0">
-                        <li class="nav-item">
-                            <a class="nav-link @(currentController == "TestPlanVersion" ? "active fw-semibold" : "")" asp-area="" asp-controller="TestPlanVersion" asp-action="Index" style="color: #475569;"><i class="bi bi-house-door me-1"></i>Home (Versions and templates)</a>
-                        </li>
-                        @if (canManageUsers)
+                        @if (!hidePrimaryNavigation)
                         {
                             <li class="nav-item">
-                                <a class="nav-link @(currentController == "UserManagement" ? "active fw-semibold" : "")" asp-controller="UserManagement" asp-action="Index" style="color: #475569;"><i class="bi bi-people me-1"></i>User management</a>
+                                <a class="nav-link @(currentController == "TestPlanVersion" ? "active fw-semibold" : "")" asp-area="" asp-controller="TestPlanVersion" asp-action="Index" style="color: #475569;"><i class="bi bi-house-door me-1"></i>Home</a>
                             </li>
+                            @if (canManageUsers)
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link @(currentController == "UserManagement" ? "active fw-semibold" : "")" asp-controller="UserManagement" asp-action="Index" style="color: #475569;"><i class="bi bi-people me-1"></i>User management</a>
+                                </li>
+                            }
                         }
                     </ul>
                     <ul class="navbar-nav align-items-lg-center mt-2 mt-lg-0">
                         @if (User.Identity?.IsAuthenticated == true)
                         {
                             <li class="nav-item me-2">
-                                <span class="nav-link current-user-pill">
+                                <a class="nav-link current-user-pill" asp-controller="Account" asp-action="Manage" title="Manage your account">
                                     <i class="bi bi-person-circle me-1"></i>@User.Identity.Name
-                                </span>
+                                    <i class="bi bi-gear ms-2 current-user-pill-cta" aria-hidden="true"></i>
+                                </a>
                             </li>
                             @if (User.IsInRole(TestPlanManager.Models.AppRoles.Administrator))
                             {

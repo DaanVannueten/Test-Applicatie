@@ -12,7 +12,7 @@
     var categoryUrl = Url.RouteUrl("test-category-details", new { id = Model.TestCategoryId });
     var breadcrumbs = new System.Collections.Generic.List<TestPlanManager.Models.BreadcrumbItem>
     {
-        new() { Label = "Versions & Templates", Url = Url.Action("Index", "TestPlanVersion") },
+        new() { Label = "Templates", Url = Url.Action("Index", "TestPlanVersion") },
         new() { Label = $"{(isTemplateView ? "Template" : "Build")} {buildNr}", Url = buildUrl },
         new() { Label = categoryName, Url = categoryUrl },
         new() { Label = "Create Test", IsCurrent = true }
