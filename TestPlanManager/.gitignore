@@ -3,3 +3,6 @@ bin/
 obj/
 App_Data/
 *.db
+
+# Local helper tooling
+.tmp/

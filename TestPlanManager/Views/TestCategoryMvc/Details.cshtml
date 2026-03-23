@@ -4,7 +4,7 @@
     ViewData["Title"] = Model.Name;
     var canManageTests = User.IsInRole(TestPlanManager.Models.AppRoles.Administrator)
         || User.IsInRole(TestPlanManager.Models.AppRoles.TestManager);
-    var canAddTests = User.Identity?.IsAuthenticated == true;
+    var canAddTests = canManageTests;
     var buildUrl = Model.Sprint?.IsTemplate == true
         ? Url.Action("Index", "Home", new { sprintId = Model.SprintId, includeTemplates = true })
         : Url.Action("Index", "Home", new { sprintId = Model.SprintId });

@@ -1,4 +1,6 @@
 using System.Linq;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TestPlanManager.Data;
@@ -9,7 +11,18 @@ namespace TestPlanManager.Controllers
     public class TestCategoryMvcController : Controller
     {
         private readonly TestPlanContext _ctx;
-        public TestCategoryMvcController(TestPlanContext ctx) => _ctx = ctx;
+        private readonly IWebHostEnvironment _env;
+        private const long MaxMediaFileBytes = 50 * 1024 * 1024;
+        private static readonly HashSet<string> AllowedMediaExtensions = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".mp4", ".webm", ".mov", ".avi"
+        };
+
+        public TestCategoryMvcController(TestPlanContext ctx, IWebHostEnvironment env)
+        {
+            _ctx = ctx;
+            _env = env;
+        }
 
         // list of all categories (maybe redirect to dashboard)
         public IActionResult Index()
@@ -37,7 +50,7 @@ namespace TestPlanManager.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> EditTest(int TestId, int TestCategoryId, string Name, ScopeStatus ScopeStatus, ExecutionStatus ExecutionStatus, string Production, string Comments, string MediaUrl)
+        public async Task<IActionResult> EditTest(int TestId, int TestCategoryId, string Name, ScopeStatus ScopeStatus, ExecutionStatus ExecutionStatus, string Production, string Comments, string? MediaUrl, IFormFile? mediaFile, bool removeMedia = false)
         {
             var test = await _ctx.Tests.FindAsync(TestId);
             if (test == null) return NotFound();
@@ -54,7 +67,29 @@ namespace TestPlanManager.Controllers
             test.ExecutionStatus = ExecutionStatus;
             test.Production = Production ?? "";
             test.Comments = Comments ?? "";
-            test.MediaUrl = MediaUrl ?? "";
+
+            if (removeMedia)
+            {
+                DeleteMediaFileIfLocal(test.MediaUrl);
+                test.MediaUrl = string.Empty;
+            }
+
+            if (mediaFile is not null && mediaFile.Length > 0)
+            {
+                if (!TryValidateMediaFile(mediaFile, out var validationError))
+                {
+                    ModelState.AddModelError("mediaFile", validationError);
+                    return View(test);
+                }
+
+                var newMediaUrl = await SaveMediaFileAsync(mediaFile);
+                DeleteMediaFileIfLocal(test.MediaUrl);
+                test.MediaUrl = newMediaUrl;
+            }
+            else if (!removeMedia && !string.IsNullOrWhiteSpace(MediaUrl))
+            {
+                test.MediaUrl = MediaUrl.Trim();
+            }
 
             if (ExecutionStatus != Models.ExecutionStatus.NotRun)
             {
@@ -80,6 +115,7 @@ namespace TestPlanManager.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = AppRoles.Managers)]
         public async Task<IActionResult> CreateTest(int testCategoryId)
         {
             var category = await _ctx.TestCategories.FindAsync(testCategoryId);
@@ -90,12 +126,24 @@ namespace TestPlanManager.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateTest(Test model)
+        [Authorize(Roles = AppRoles.Managers)]
+        public async Task<IActionResult> CreateTest(Test model, IFormFile? mediaFile)
         {
             if (string.IsNullOrWhiteSpace(model.Name) || string.IsNullOrWhiteSpace(model.Description))
             {
                 ModelState.AddModelError("", "Name and Description are required.");
                 return View(model);
+            }
+
+            if (mediaFile is not null && mediaFile.Length > 0)
+            {
+                if (!TryValidateMediaFile(mediaFile, out var validationError))
+                {
+                    ModelState.AddModelError("mediaFile", validationError);
+                    return View(model);
+                }
+
+                model.MediaUrl = await SaveMediaFileAsync(mediaFile);
             }
 
             model.Name = TestTitleSanitizer.Clean(model.Name);
@@ -276,6 +324,68 @@ namespace TestPlanManager.Controllers
             }
 
             return RedirectToAction("Index", "Home", new { sprintId = model.SprintId });
+        }
+
+        private bool TryValidateMediaFile(IFormFile mediaFile, out string validationError)
+        {
+            var extension = Path.GetExtension(mediaFile.FileName);
+            if (string.IsNullOrWhiteSpace(extension) || !AllowedMediaExtensions.Contains(extension))
+            {
+                validationError = "Unsupported file type. Allowed: JPG, PNG, GIF, WEBP, BMP, MP4, WEBM, MOV, AVI.";
+                return false;
+            }
+
+            if (mediaFile.Length > MaxMediaFileBytes)
+            {
+                validationError = "File is too large. Maximum allowed size is 50MB.";
+                return false;
+            }
+
+            validationError = string.Empty;
+            return true;
+        }
+
+        private async Task<string> SaveMediaFileAsync(IFormFile mediaFile)
+        {
+            var extension = Path.GetExtension(mediaFile.FileName).ToLowerInvariant();
+            var uniqueFileName = $"{DateTime.UtcNow:yyyyMMddHHmmssfff}_{Guid.NewGuid():N}{extension}";
+
+            var webRoot = string.IsNullOrWhiteSpace(_env.WebRootPath)
+                ? Path.Combine(_env.ContentRootPath, "wwwroot")
+                : _env.WebRootPath;
+
+            var mediaFolder = Path.Combine(webRoot, "uploads", "test-media");
+            Directory.CreateDirectory(mediaFolder);
+
+            var physicalPath = Path.Combine(mediaFolder, uniqueFileName);
+            await using var stream = System.IO.File.Create(physicalPath);
+            await mediaFile.CopyToAsync(stream);
+
+            return $"/uploads/test-media/{uniqueFileName}";
+        }
+
+        private void DeleteMediaFileIfLocal(string? mediaUrl)
+        {
+            if (string.IsNullOrWhiteSpace(mediaUrl) || !mediaUrl.StartsWith("/uploads/test-media/", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            var fileName = Path.GetFileName(mediaUrl);
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                return;
+            }
+
+            var webRoot = string.IsNullOrWhiteSpace(_env.WebRootPath)
+                ? Path.Combine(_env.ContentRootPath, "wwwroot")
+                : _env.WebRootPath;
+
+            var physicalPath = Path.Combine(webRoot, "uploads", "test-media", fileName);
+            if (System.IO.File.Exists(physicalPath))
+            {
+                System.IO.File.Delete(physicalPath);
+            }
         }
     }
 }

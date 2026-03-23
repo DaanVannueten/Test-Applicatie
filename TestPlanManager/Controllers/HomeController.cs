@@ -81,6 +81,9 @@ public class HomeController : Controller
 
         var testsExecuted = tests.Count(t => t.ExecutionStatus != Models.ExecutionStatus.NotRun);
 
+        var inScopeTests = tests.Where(t => t.ScopeStatus == Models.ScopeStatus.InScope).ToList();
+        var inScopeTotal = inScopeTests.Count;
+
         var passed = tests.Count(t => t.ExecutionStatus == Models.ExecutionStatus.Passed);
         var failed = tests.Count(t => t.ExecutionStatus == Models.ExecutionStatus.Failed);
         var blocked = tests.Count(t => t.ExecutionStatus == Models.ExecutionStatus.Blocked);
@@ -88,8 +91,10 @@ public class HomeController : Controller
         var openOrFailed = tests.Count(t => t.ExecutionStatus == Models.ExecutionStatus.Failed ||
                                            t.ExecutionStatus == Models.ExecutionStatus.Blocked);
 
-        var overallPassRate = totalTestCases == 0 ? 0f : ((float)passed / totalTestCases) * 100;
-        var passedRate = totalTestCases == 0 ? 0f : ((float)passed / totalTestCases) * 100;
+        var passedInScope = inScopeTests.Count(t => t.ExecutionStatus == Models.ExecutionStatus.Passed);
+
+        var overallPassRate = inScopeTotal == 0 ? 0f : ((float)passedInScope / inScopeTotal) * 100;
+        var passedRate = inScopeTotal == 0 ? 0f : ((float)passedInScope / inScopeTotal) * 100;
         var failedRate = totalTestCases == 0 ? 0f : ((float)failed / totalTestCases) * 100;
         var blockedRate = totalTestCases == 0 ? 0f : ((float)blocked / totalTestCases) * 100;
         var outOfScopeRate = totalTestCases == 0 ? 0f : ((float)outOfScope / totalTestCases) * 100;
