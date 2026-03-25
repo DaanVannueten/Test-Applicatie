@@ -376,6 +376,42 @@ app.UseStaticFiles();
 // Authentication middleware - identifies the current user from the auth cookie
 app.UseAuthentication();
 
+// Enforce MFA enrollment for authenticated users before granting access to the app.
+app.Use(async (context, next) =>
+{
+    if (context.User.Identity?.IsAuthenticated == true)
+    {
+        var path = context.Request.Path;
+        var isAllowedPath =
+            path.StartsWithSegments("/Account/EnableAuthenticator", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWithSegments("/Account/DisableAuthenticator", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWithSegments("/Account/RegenerateRecoveryCodes", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWithSegments("/Account/ShowRecoveryCodes", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWithSegments("/Account/Manage", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWithSegments("/Account/Logout", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWithSegments("/Account/AccessDenied", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWithSegments("/Account/LoginWith2fa", StringComparison.OrdinalIgnoreCase);
+
+        if (!isAllowedPath)
+        {
+            var userManager = context.RequestServices.GetRequiredService<UserManager<ApplicationUser>>();
+            var user = await userManager.GetUserAsync(context.User);
+
+            if (user != null)
+            {
+                var twoFactorEnabled = await userManager.GetTwoFactorEnabledAsync(user);
+                if (!twoFactorEnabled)
+                {
+                    context.Response.Redirect("/Account/EnableAuthenticator");
+                    return;
+                }
+            }
+        }
+    }
+
+    await next();
+});
+
 // Authorization middleware - enforces [Authorize] and role-based access control attributes
 app.UseAuthorization();
 

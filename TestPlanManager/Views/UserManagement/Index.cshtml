@@ -29,6 +29,7 @@
                         <th>Email</th>
                         <th style="width: 340px;">Role</th>
                         <th style="width: 220px;">Account Status</th>
+                        <th style="width: 180px;">MFA</th>
                         <th style="width: 340px;">Actions</th>
                     </tr>
                 </thead>
@@ -36,7 +37,7 @@
                     @if (!Model.Users.Any())
                     {
                         <tr>
-                            <td colspan="4" class="text-center text-muted py-4">No users found.</td>
+                            <td colspan="5" class="text-center text-muted py-4">No users found.</td>
                         </tr>
                     }
                     else
@@ -65,6 +66,16 @@
                                     else
                                     {
                                         <span class="badge text-bg-warning">Inactive</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (user.IsMfaEnabled)
+                                    {
+                                        <span class="badge text-bg-success">Enabled</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge text-bg-secondary">Not enabled</span>
                                     }
                                 </td>
                                 <td>

@@ -1,0 +1,32 @@
+@model TestPlanManager.Models.ShowRecoveryCodesViewModel
+@{
+    ViewData["Title"] = "Recovery codes";
+}
+
+<div class="auth-shell">
+    <div class="row justify-content-center mt-3">
+        <div class="col-12 col-lg-8">
+            <div class="alert alert-warning" role="alert">
+                Save these recovery codes in a safe place. Each code can be used once.
+            </div>
+
+            <div class="card auth-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-key me-2"></i>Recovery codes</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        @foreach (var code in Model.RecoveryCodes)
+                        {
+                            <div class="col-12 col-md-6 mb-2">
+                                <code>@code</code>
+                            </div>
+                        }
+                    </div>
+
+                    <a asp-action="Manage" class="btn btn-primary mt-3">Back to account settings</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

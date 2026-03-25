@@ -21,7 +21,8 @@ De applicatie laat je:
 9. Database en migraties
 10. Configuratie
 11. Presentatiehulp (spreekpunten)
-12. Bekende aandachtspunten
+12. Unit tests
+13. Bekende aandachtspunten
 
 ## 1. Projectoverzicht
 
@@ -317,6 +318,70 @@ Gebruik onderstaande structuur om vlot te presenteren:
 
 5. Sterke punten
 - "Snelle onboarding, duidelijke structuur, uitbreidbaar met extra statussen of rapportering."
+
+## 12. Unit tests
+
+De unit tests staan in het aparte testproject:
+- `TestPlanManager.Tests/`
+
+### Wat wordt getest
+
+- Domeinlogica:
+  - `TestCategory.Recalculate()` (aggregaties, pass-percentage, status)
+  - `TestTitleSanitizer.Clean(...)`
+- Data utility:
+  - `FileDefaultVersionStore` (missend bestand, corrupte JSON, null/waarde opslaan)
+- Controller foutpaden:
+  - API: `SprintController`, `TestController`, `TestCategoryController`
+  - MVC: `HomeController`, `TestPlanVersionController`
+
+De controller-tests gebruiken:
+- EF Core InMemory database per test (`TestContextFactory`)
+- Fake `HttpContext` user + rollen en `TempData` (`ControllerTestHelpers`)
+
+### Tests runnen
+
+Run alle tests in de solution:
+
+```bash
+dotnet test TestPlanManager.sln
+```
+
+Run alleen het testproject:
+
+```bash
+dotnet test TestPlanManager.Tests/TestPlanManager.Tests.csproj
+```
+
+Run met gedetailleerde output:
+
+```bash
+dotnet test TestPlanManager.sln -v normal
+```
+
+Run een specifiek testbestand (filter op class naam):
+
+```bash
+dotnet test TestPlanManager.sln --filter "FullyQualifiedName~TestControllerErrorTests"
+```
+
+Run 1 specifieke testmethode:
+
+```bash
+dotnet test TestPlanManager.sln --filter "FullyQualifiedName~UpdateStatus_ReturnsNotFound_WhenTestDoesNotExist"
+```
+
+### Coverage (optioneel)
+
+Omdat `coverlet.collector` geinstalleerd is, kan je coverage verzamelen met:
+
+```bash
+dotnet test TestPlanManager.sln --collect:"XPlat Code Coverage"
+```
+
+Na de run vind je per testproject een `coverage.cobertura.xml` onder `TestResults/`.
+
+## 13. Bekende aandachtspunten
 
 ## 12. Bekende aandachtspunten
 

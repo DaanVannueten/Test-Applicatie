@@ -68,9 +68,10 @@ namespace TestPlanManager.Controllers
             test.Production = Production ?? "";
             test.Comments = Comments ?? "";
 
+            var previousMediaUrl = test.MediaUrl;
+
             if (removeMedia)
             {
-                DeleteMediaFileIfLocal(test.MediaUrl);
                 test.MediaUrl = string.Empty;
             }
 
@@ -83,7 +84,6 @@ namespace TestPlanManager.Controllers
                 }
 
                 var newMediaUrl = await SaveMediaFileAsync(mediaFile);
-                DeleteMediaFileIfLocal(test.MediaUrl);
                 test.MediaUrl = newMediaUrl;
             }
             else if (!removeMedia && !string.IsNullOrWhiteSpace(MediaUrl))
@@ -110,6 +110,13 @@ namespace TestPlanManager.Controllers
 
             _ctx.Tests.Update(test);
             await _ctx.SaveChangesAsync();
+
+            if ((removeMedia || (mediaFile is not null && mediaFile.Length > 0))
+                && !string.Equals(previousMediaUrl, test.MediaUrl, StringComparison.OrdinalIgnoreCase))
+            {
+                await DeleteMediaFileIfLocalIfUnreferencedAsync(previousMediaUrl, test.TestId);
+            }
+
             var detailsUrl = Url.Action("Details", new { id = TestCategoryId });
             return Redirect($"{detailsUrl}#test-{TestId}");
         }
@@ -364,9 +371,18 @@ namespace TestPlanManager.Controllers
             return $"/uploads/test-media/{uniqueFileName}";
         }
 
-        private void DeleteMediaFileIfLocal(string? mediaUrl)
+        private async Task DeleteMediaFileIfLocalIfUnreferencedAsync(string? mediaUrl, int excludeTestId)
         {
             if (string.IsNullOrWhiteSpace(mediaUrl) || !mediaUrl.StartsWith("/uploads/test-media/", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            var stillReferenced = await _ctx.Tests
+                .AsNoTracking()
+                .AnyAsync(t => t.TestId != excludeTestId && t.MediaUrl == mediaUrl);
+
+            if (stillReferenced)
             {
                 return;
             }

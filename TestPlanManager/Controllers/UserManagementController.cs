@@ -37,6 +37,7 @@ public class UserManagementController : Controller
                 Email = user.Email ?? user.UserName ?? string.Empty,
                 Role = roles.FirstOrDefault() ?? string.Empty,
                 IsActive = user.IsActive,
+                IsMfaEnabled = user.TwoFactorEnabled,
                 IsCurrentUser = user.Id == currentUserId
             });
         }

@@ -13,6 +13,7 @@ public class UserAccountRowViewModel
     public string Email { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
     public bool IsActive { get; set; }
+    public bool IsMfaEnabled { get; set; }
     public bool IsCurrentUser { get; set; }
 }
 

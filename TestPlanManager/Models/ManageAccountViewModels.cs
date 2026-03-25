@@ -5,8 +5,41 @@ namespace TestPlanManager.Models;
 public class ManageAccountPageViewModel
 {
     public string CurrentEmail { get; set; } = string.Empty;
+    public bool IsTwoFactorEnabled { get; set; }
+    public int RecoveryCodesLeft { get; set; }
     public UpdateEmailInputModel UpdateEmail { get; set; } = new();
     public ChangePasswordInputModel ChangePassword { get; set; } = new();
+}
+
+public class LoginWith2faViewModel
+{
+    [Required]
+    [Display(Name = "Authenticator code")]
+    public string TwoFactorCode { get; set; } = string.Empty;
+
+    public bool RememberMe { get; set; }
+
+    [Display(Name = "Remember this device")]
+    public bool RememberMachine { get; set; }
+
+    public string? ReturnUrl { get; set; }
+}
+
+public class EnableAuthenticatorViewModel
+{
+    [Required]
+    [StringLength(7, ErrorMessage = "Code must be 6 digits.", MinimumLength = 6)]
+    [Display(Name = "Verification code")]
+    public string Code { get; set; } = string.Empty;
+
+    public string SharedKey { get; set; } = string.Empty;
+    public string AuthenticatorUri { get; set; } = string.Empty;
+    public string QrCodeImageDataUrl { get; set; } = string.Empty;
+}
+
+public class ShowRecoveryCodesViewModel
+{
+    public string[] RecoveryCodes { get; set; } = [];
 }
 
 public class UpdateEmailInputModel

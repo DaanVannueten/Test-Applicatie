@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using QRCoder;
+using System.Text.Encodings.Web;
 using TestPlanManager.Models;
 
 namespace TestPlanManager.Controllers;
@@ -28,6 +30,7 @@ public class AccountController : Controller
     /// Administrator accounts must be created by existing administrators only.
     /// </summary>
     private static readonly string[] SelfRegisterAllowedRoles = [AppRoles.Tester, AppRoles.TestManager];
+    private const string AuthenticatorAppName = "TestPlanManager";
 
     private readonly SignInManager<ApplicationUser> _signInManager;   // Manages user sign-in operations
     private readonly UserManager<ApplicationUser> _userManager;       // Manages user accounts and passwords
@@ -95,6 +98,11 @@ public class AccountController : Controller
             }
 
             return RedirectToAction("Index", "TestPlanVersion");
+        }
+
+        if (result.RequiresTwoFactor)
+        {
+            return RedirectToAction(nameof(LoginWith2fa), new { model.ReturnUrl, model.RememberMe });
         }
 
         // Account is locked due to multiple failed login attempts
@@ -212,10 +220,176 @@ public class AccountController : Controller
         return View(new ManageAccountPageViewModel
         {
             CurrentEmail = user.Email ?? user.UserName ?? string.Empty,
+            IsTwoFactorEnabled = await _userManager.GetTwoFactorEnabledAsync(user),
+            RecoveryCodesLeft = await _userManager.CountRecoveryCodesAsync(user),
             UpdateEmail = new UpdateEmailInputModel
             {
                 NewEmail = user.Email ?? user.UserName ?? string.Empty
             }
+        });
+    }
+
+    [HttpGet]
+    [AllowAnonymous]
+    public async Task<IActionResult> LoginWith2fa(bool rememberMe, string? returnUrl = null)
+    {
+        var user = await _signInManager.GetTwoFactorAuthenticationUserAsync();
+        if (user == null)
+        {
+            TempData["ErrorMessage"] = "Your login session expired. Please sign in again.";
+            return RedirectToAction(nameof(Login));
+        }
+
+        return View(new LoginWith2faViewModel
+        {
+            RememberMe = rememberMe,
+            ReturnUrl = returnUrl
+        });
+    }
+
+    [HttpPost]
+    [AllowAnonymous]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> LoginWith2fa(LoginWith2faViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        var user = await _signInManager.GetTwoFactorAuthenticationUserAsync();
+        if (user == null)
+        {
+            TempData["ErrorMessage"] = "Your login session expired. Please sign in again.";
+            return RedirectToAction(nameof(Login));
+        }
+
+        var code = model.TwoFactorCode.Replace(" ", string.Empty).Replace("-", string.Empty);
+        var result = await _signInManager.TwoFactorAuthenticatorSignInAsync(code, model.RememberMe, model.RememberMachine);
+
+        if (result.Succeeded)
+        {
+            if (!string.IsNullOrWhiteSpace(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
+            {
+                return LocalRedirect(model.ReturnUrl);
+            }
+
+            return RedirectToAction("Index", "TestPlanVersion");
+        }
+
+        if (result.IsLockedOut)
+        {
+            AddLockoutErrorMessage(user);
+            return View(model);
+        }
+
+        ModelState.AddModelError(string.Empty, "Invalid authenticator code.");
+        return View(model);
+    }
+
+    [HttpGet]
+    [Authorize]
+    public async Task<IActionResult> EnableAuthenticator()
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            await _signInManager.SignOutAsync();
+            return RedirectToAction(nameof(Login));
+        }
+
+        if (await _userManager.GetTwoFactorEnabledAsync(user))
+        {
+            TempData["SuccessMessage"] = "MFA is already enabled for your account.";
+            return RedirectToAction(nameof(Manage));
+        }
+
+        var model = new EnableAuthenticatorViewModel();
+        await LoadAuthenticatorSetupAsync(user, model);
+        return View(model);
+    }
+
+    [HttpPost]
+    [Authorize]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> EnableAuthenticator(EnableAuthenticatorViewModel model)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            await _signInManager.SignOutAsync();
+            return RedirectToAction(nameof(Login));
+        }
+
+        if (!ModelState.IsValid)
+        {
+            await LoadAuthenticatorSetupAsync(user, model);
+            return View(model);
+        }
+
+        var verificationCode = model.Code.Replace(" ", string.Empty).Replace("-", string.Empty);
+        var isValid = await _userManager.VerifyTwoFactorTokenAsync(
+            user,
+            _userManager.Options.Tokens.AuthenticatorTokenProvider,
+            verificationCode);
+
+        if (!isValid)
+        {
+            ModelState.AddModelError(nameof(model.Code), "Verification code is invalid.");
+            await LoadAuthenticatorSetupAsync(user, model);
+            return View(model);
+        }
+
+        await _userManager.SetTwoFactorEnabledAsync(user, true);
+        var recoveryCodes = await _userManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
+        await _signInManager.RefreshSignInAsync(user);
+
+        return View("ShowRecoveryCodes", new ShowRecoveryCodesViewModel
+        {
+            RecoveryCodes = (recoveryCodes ?? []).ToArray()
+        });
+    }
+
+    [HttpPost]
+    [Authorize]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DisableAuthenticator()
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            await _signInManager.SignOutAsync();
+            return RedirectToAction(nameof(Login));
+        }
+
+        await _userManager.SetTwoFactorEnabledAsync(user, false);
+        await _signInManager.RefreshSignInAsync(user);
+        TempData["SuccessMessage"] = "MFA has been disabled.";
+        return RedirectToAction(nameof(Manage));
+    }
+
+    [HttpPost]
+    [Authorize]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RegenerateRecoveryCodes()
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            await _signInManager.SignOutAsync();
+            return RedirectToAction(nameof(Login));
+        }
+
+        if (!await _userManager.GetTwoFactorEnabledAsync(user))
+        {
+            TempData["ErrorMessage"] = "Enable MFA before generating recovery codes.";
+            return RedirectToAction(nameof(Manage));
+        }
+
+        var recoveryCodes = await _userManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
+        return View("ShowRecoveryCodes", new ShowRecoveryCodesViewModel
+        {
+            RecoveryCodes = (recoveryCodes ?? []).ToArray()
         });
     }
 
@@ -501,5 +675,58 @@ public class AccountController : Controller
 
         // Generic lockout message if details unavailable
         ModelState.AddModelError(string.Empty, "Account is temporarily locked. Please try again later.");
+    }
+
+    private async Task LoadAuthenticatorSetupAsync(ApplicationUser user, EnableAuthenticatorViewModel model)
+    {
+        var unformattedKey = await _userManager.GetAuthenticatorKeyAsync(user);
+        if (string.IsNullOrWhiteSpace(unformattedKey))
+        {
+            await _userManager.ResetAuthenticatorKeyAsync(user);
+            unformattedKey = await _userManager.GetAuthenticatorKeyAsync(user);
+        }
+
+        model.SharedKey = FormatKey(unformattedKey ?? string.Empty);
+        model.AuthenticatorUri = GenerateQrCodeUri(user.Email ?? user.UserName ?? "user", unformattedKey ?? string.Empty);
+        model.QrCodeImageDataUrl = GenerateQrCodeImageDataUrl(model.AuthenticatorUri);
+    }
+
+    private static string FormatKey(string unformattedKey)
+    {
+        if (string.IsNullOrWhiteSpace(unformattedKey))
+        {
+            return string.Empty;
+        }
+
+        var result = new System.Text.StringBuilder();
+        var currentPosition = 0;
+        while (currentPosition + 4 < unformattedKey.Length)
+        {
+            result.Append(unformattedKey.AsSpan(currentPosition, 4)).Append(' ');
+            currentPosition += 4;
+        }
+
+        if (currentPosition < unformattedKey.Length)
+        {
+            result.Append(unformattedKey.AsSpan(currentPosition));
+        }
+
+        return result.ToString().ToLowerInvariant();
+    }
+
+    private static string GenerateQrCodeUri(string email, string unformattedKey)
+    {
+        var issuer = UrlEncoder.Default.Encode(AuthenticatorAppName);
+        var encodedEmail = UrlEncoder.Default.Encode(email);
+        return $"otpauth://totp/{issuer}:{encodedEmail}?secret={unformattedKey}&issuer={issuer}&digits=6";
+    }
+
+    private static string GenerateQrCodeImageDataUrl(string uri)
+    {
+        using var qrGenerator = new QRCodeGenerator();
+        using var qrCodeData = qrGenerator.CreateQrCode(uri, QRCodeGenerator.ECCLevel.Q);
+        var qrCode = new PngByteQRCode(qrCodeData);
+        var qrCodeBytes = qrCode.GetGraphic(20);
+        return $"data:image/png;base64,{Convert.ToBase64String(qrCodeBytes)}";
     }
 }

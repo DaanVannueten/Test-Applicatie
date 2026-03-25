@@ -107,7 +107,11 @@ namespace TestPlanManager.Controllers
             t.ExecutionStatus = dto.ExecutionStatus;
             t.Production = dto.Production ?? "";           // Production environment info (version, build, etc.)
             t.Comments = dto.Comments;                     // Test execution comments
-            t.MediaUrl = dto.MediaUrl ?? dto.VideoURL;     // Screenshot/video URL (supports both property names)
+            var requestedMediaUrl = dto.MediaUrl ?? dto.VideoURL;
+            if (requestedMediaUrl is not null)
+            {
+                t.MediaUrl = requestedMediaUrl;  // Only overwrite when caller explicitly sends media
+            }
 
             // Set or clear execution timestamp based on new status
             if (dto.ExecutionStatus != ExecutionStatus.NotRun)
