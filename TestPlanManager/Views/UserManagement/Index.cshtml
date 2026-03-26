@@ -57,6 +57,7 @@
                                         </select>
                                         <button class="btn btn-outline-primary btn-sm role-save-btn" type="submit">Save</button>
                                     </form>
+                                    <div class="form-text role-help" data-role-help></div>
                                 </td>
                                 <td>
                                     @if (user.IsActive)
@@ -150,6 +151,12 @@
         min-width: 72px;
     }
 
+    .role-help {
+        margin-top: 0.25rem;
+        max-width: 320px;
+        line-height: 1.2;
+    }
+
     .user-actions {
         display: flex;
         align-items: center;
@@ -186,3 +193,28 @@
         }
     }
 </style>
+
+<script>
+    (function () {
+        const roleDescriptions = {
+            "Tester": "Can execute test work and update results. Cannot manage users, templates, or admin-only settings.",
+            "Test Manager": "Can manage templates and test cycles. Cannot manage users or administrator-only settings.",
+            "Administrator": "Full access, including user and role management. Cannot remove the last active administrator account."
+        };
+
+        document.querySelectorAll('.role-form').forEach(function (form) {
+            const select = form.querySelector('.role-select');
+            const help = form.parentElement.querySelector('[data-role-help]');
+            if (!select || !help) {
+                return;
+            }
+
+            const updateHelp = function () {
+                help.textContent = roleDescriptions[select.value] || "";
+            };
+
+            select.addEventListener('change', updateHelp);
+            updateHelp();
+        });
+    })();
+</script>

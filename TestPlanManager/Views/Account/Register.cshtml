@@ -31,11 +31,12 @@
 
                     <div class="mb-3">
                         <label asp-for="Role" class="form-label">Role</label>
-                        <select asp-for="Role" class="form-select">
+                        <select asp-for="Role" class="form-select" id="roleSelect">
                             <option value="@TestPlanManager.Models.AppRoles.Tester">@TestPlanManager.Models.AppRoles.Tester</option>
                             <option value="@TestPlanManager.Models.AppRoles.TestManager">@TestPlanManager.Models.AppRoles.TestManager</option>
                             <option value="@TestPlanManager.Models.AppRoles.Administrator">@TestPlanManager.Models.AppRoles.Administrator</option>
                         </select>
+                        <div class="form-text" id="roleHelpText"></div>
                         <span asp-validation-for="Role" class="text-danger"></span>
                     </div>
 
@@ -53,4 +54,26 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            const roleDescriptions = {
+                "Tester": "Can execute test work and update results. Cannot manage users, templates, or admin-only settings.",
+                "Test Manager": "Can manage templates and test cycles. Cannot manage users or administrator-only settings.",
+                "Administrator": "Full access, including user and role management. Cannot remove the last active administrator account."
+            };
+
+            const roleSelect = document.getElementById('roleSelect');
+            const roleHelpText = document.getElementById('roleHelpText');
+            if (!roleSelect || !roleHelpText) {
+                return;
+            }
+
+            const updateRoleHelp = function () {
+                roleHelpText.textContent = roleDescriptions[roleSelect.value] || "";
+            };
+
+            roleSelect.addEventListener('change', updateRoleHelp);
+            updateRoleHelp();
+        })();
+    </script>
 }
