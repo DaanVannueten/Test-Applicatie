@@ -26,11 +26,11 @@
             <table class="table table-striped table-hover mb-0 align-middle user-management-table">
                 <thead class="table-light">
                     <tr>
-                        <th>Email</th>
-                        <th style="width: 340px;">Role</th>
-                        <th style="width: 220px;">Account Status</th>
-                        <th style="width: 180px;">MFA</th>
-                        <th style="width: 340px;">Actions</th>
+                        <th class="col-email">Email</th>
+                        <th class="col-role">Role</th>
+                        <th class="col-status">Account Status</th>
+                        <th class="col-mfa">MFA</th>
+                        <th class="col-actions">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -59,7 +59,7 @@
                                     </form>
                                     <div class="form-text role-help" data-role-help></div>
                                 </td>
-                                <td>
+                                <td class="status-cell">
                                     @if (user.IsActive)
                                     {
                                         <span class="badge text-bg-success">Active</span>
@@ -69,7 +69,7 @@
                                         <span class="badge text-bg-warning">Inactive</span>
                                     }
                                 </td>
-                                <td>
+                                <td class="mfa-cell">
                                     @if (user.IsMfaEnabled)
                                     {
                                         <span class="badge text-bg-success">Enabled</span>
@@ -79,10 +79,10 @@
                                         <span class="badge text-bg-secondary">Not enabled</span>
                                     }
                                 </td>
-                                <td>
+                                <td class="actions-cell">
                                     @if (user.IsCurrentUser)
                                     {
-                                        <span class="text-muted small">Current account</span>
+                                        <span class="text-muted small current-account-label">Current account</span>
                                     }
                                     else
                                     {
@@ -130,20 +130,41 @@
 </div>
 
 <style>
-    .user-management-table td {
-        vertical-align: middle;
+    .user-management-table {
+        width: 100%;
+        table-layout: auto;
     }
+
+    .user-management-table th,
+    .user-management-table td {
+        vertical-align: top;
+        padding: 0.95rem 0.9rem;
+    }
+
+    .user-management-table thead th {
+        text-transform: uppercase;
+        font-size: 0.78rem;
+        letter-spacing: 0.03em;
+        font-weight: 700;
+    }
+
+    .col-email { width: 24%; }
+    .col-role { width: 30%; }
+    .col-status { width: 14%; }
+    .col-mfa { width: 12%; }
+    .col-actions { width: 20%; }
 
     .role-form {
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        min-width: 300px;
+        margin-bottom: 0.35rem;
+        flex-wrap: wrap;
     }
 
     .role-select {
-        min-width: 210px;
         flex: 1 1 auto;
+        min-width: 190px;
     }
 
     .role-save-btn {
@@ -152,17 +173,23 @@
     }
 
     .role-help {
-        margin-top: 0.25rem;
-        max-width: 320px;
+        min-height: 2.4em;
         line-height: 1.2;
+    }
+
+    .status-cell .badge,
+    .mfa-cell .badge,
+    .current-account-label {
+        margin-top: 0.2rem;
+        display: inline-block;
     }
 
     .user-actions {
         display: flex;
         align-items: center;
         gap: 0.4rem;
-        flex-wrap: nowrap;
-        white-space: nowrap;
+        flex-wrap: wrap;
+        white-space: normal;
     }
 
     .action-form {
@@ -170,17 +197,21 @@
     }
 
     .action-btn {
-        width: 110px;
+        min-width: 102px;
         text-align: center;
     }
 
     @@media (max-width: 768px) {
-        .role-form {
-            min-width: 250px;
+        .table-responsive {
+            overflow-x: visible;
         }
 
-        .role-select {
-            min-width: 170px;
+        .col-email,
+        .col-role,
+        .col-status,
+        .col-mfa,
+        .col-actions {
+            width: auto;
         }
 
         .user-actions {

@@ -207,11 +207,11 @@ else
                                                     <td>@(cycle.LastExecutionDate.HasValue ? cycle.LastExecutionDate.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm") : "-")</td>
                                                     <td>@(string.IsNullOrWhiteSpace(cycle.LastWorkedBy) ? "-" : cycle.LastWorkedBy)</td>
                                                     <td onclick="event.stopPropagation();">
-                                                        <div class="dropdown dropup">
-                                                            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="More actions">
+                                                        <div class="dropdown floating-dropdown">
+                                                            <button class="btn btn-sm btn-outline-secondary floating-menu-toggle" type="button" aria-expanded="false" aria-haspopup="true" title="More actions">
                                                                 <i class="bi bi-three-dots-vertical"></i>
                                                             </button>
-                                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                            <ul class="dropdown-menu dropdown-menu-end floating-dropdown-menu" role="menu" aria-hidden="true">
                                                                 <li>
                                                                     <a class="dropdown-item" asp-controller="Home" asp-action="Index" asp-route-sprintId="@cycle.SprintId">Open</a>
                                                                 </li>
@@ -312,11 +312,11 @@ else
                                             <td>@(cycle.LastExecutionDate.HasValue ? cycle.LastExecutionDate.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm") : "-")</td>
                                             <td>@(string.IsNullOrWhiteSpace(cycle.LastWorkedBy) ? "-" : cycle.LastWorkedBy)</td>
                                             <td onclick="event.stopPropagation();">
-                                                <div class="dropdown dropup">
-                                                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="More actions">
+                                                <div class="dropdown floating-dropdown">
+                                                    <button class="btn btn-sm btn-outline-secondary floating-menu-toggle" type="button" aria-expanded="false" aria-haspopup="true" title="More actions">
                                                         <i class="bi bi-three-dots-vertical"></i>
                                                     </button>
-                                                    <ul class="dropdown-menu dropdown-menu-end">
+                                                    <ul class="dropdown-menu dropdown-menu-end floating-dropdown-menu" role="menu" aria-hidden="true">
                                                         <li>
                                                             <a class="dropdown-item" asp-controller="Home" asp-action="Index" asp-route-sprintId="@cycle.SprintId">Open</a>
                                                         </li>

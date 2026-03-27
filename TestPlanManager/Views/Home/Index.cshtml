@@ -240,10 +240,11 @@
                     </td>
                     <td class="progress-cell">
                         <div class="d-flex align-items-center gap-3 progress-wrap">
-                            <div class="progress flex-grow-1 dashboard-progress">
+                            <div class="progress flex-grow-1 dashboard-progress" title="Progress: @cat.PercentagePassed.ToString("0.##")%">
                                 <div class="progress-bar" role="progressbar"
                                      style="width: @cat.PercentagePassed%;"
                                      aria-valuenow="@cat.PercentagePassed" aria-valuemin="0" aria-valuemax="100">
+                                    <span class="progress-bar-text">@cat.PercentagePassed.ToString("0.##")%</span>
                                 </div>
                             </div>
                             <span class="small text-muted fw-semibold">@cat.PercentagePassed.ToString("0.##")%</span>
