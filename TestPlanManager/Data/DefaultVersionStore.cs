@@ -59,7 +59,7 @@ namespace TestPlanManager.Data
             // Ensure App_Data directory exists
             var dataDir = Path.Combine(contentRootPath, "App_Data");
             Directory.CreateDirectory(dataDir);
-            
+
             // Store path to default-version.json file
             _filePath = Path.Combine(dataDir, "default-version.json");
         }
@@ -81,7 +81,7 @@ namespace TestPlanManager.Data
 
                 // Read file contents
                 var json = File.ReadAllText(_filePath);
-                
+
                 // Return null if file is empty
                 if (string.IsNullOrWhiteSpace(json))
                 {

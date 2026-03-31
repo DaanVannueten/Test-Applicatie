@@ -109,10 +109,10 @@ using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     var ctx = services.GetRequiredService<TestPlanManager.Data.TestPlanContext>();
-    
+
     // Apply any pending database migrations to ensure database schema is current
     await ctx.Database.MigrateAsync();
-    
+
     var tests = await ctx.Tests.ToListAsync();
     var hasChanges = false;
 

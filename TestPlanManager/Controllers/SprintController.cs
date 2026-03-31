@@ -30,7 +30,7 @@ namespace TestPlanManager.Controllers
     public class SprintController : ControllerBase
     {
         private readonly TestPlanContext _ctx;  // Database context for data access
-        
+
         public SprintController(TestPlanContext ctx) => _ctx = ctx;
 
         /// <summary>
@@ -65,7 +65,7 @@ namespace TestPlanManager.Controllers
                 .AsNoTracking()
                 .Include(s => s.TestCategories)
                 .FirstOrDefaultAsync(s => s.SprintId == id);
-            
+
             return sprint == null ? NotFound() : Ok(sprint);
         }
 
@@ -83,7 +83,7 @@ namespace TestPlanManager.Controllers
         {
             _ctx.Sprints.Add(sprint);
             await _ctx.SaveChangesAsync();
-            
+
             // Return 201 Created status with location of new resource
             return CreatedAtAction(nameof(Get), new { id = sprint.SprintId }, sprint);
         }
@@ -107,11 +107,11 @@ namespace TestPlanManager.Controllers
         {
             // Verify URL ID matches object ID
             if (id != update.SprintId) return BadRequest();
-            
+
             // Mark entity as modified and save
             _ctx.Entry(update).State = EntityState.Modified;
             await _ctx.SaveChangesAsync();
-            
+
             return NoContent();  // 204 No Content
         }
 
@@ -134,10 +134,10 @@ namespace TestPlanManager.Controllers
         {
             var sprint = await _ctx.Sprints.FindAsync(id);
             if (sprint == null) return NotFound();
-            
+
             _ctx.Sprints.Remove(sprint);
             await _ctx.SaveChangesAsync();
-            
+
             return NoContent();  // 204 No Content
         }
     }

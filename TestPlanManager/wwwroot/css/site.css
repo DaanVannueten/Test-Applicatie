@@ -59,6 +59,16 @@ a:hover {
   color: #000000;
 }
 
+::selection {
+  background: var(--color-brand-gold);
+  color: #000000;
+}
+
+::-moz-selection {
+  background: var(--color-brand-gold);
+  color: #000000;
+}
+
 /* ==================== ACCESSIBILITY ==================== */
 a:focus-visible,
 button:focus-visible,
@@ -122,11 +132,15 @@ textarea:focus-visible,
 .app-brand {
   color: #000000 !important;
   font-size: 1.2rem;
+  margin-right: 1rem;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
-.app-brand-icon {
-  color: var(--color-brand-green);
-  font-size: 1.45rem;
+.app-brand-logo {
+  height: 56px;
+  width: auto;
+  display: block;
 }
 
 .navbar-nav {

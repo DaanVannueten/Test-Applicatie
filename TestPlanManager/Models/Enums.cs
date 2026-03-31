@@ -17,13 +17,13 @@ namespace TestPlanManager.Models
     {
         /// <summary>Information Technology department</summary>
         IT,
-        
+
         /// <summary>Finance department</summary>
         Finance,
-        
+
         /// <summary>Digital/Web division</summary>
         Digital,
-        
+
         /// <summary>Operations department</summary>
         Ops
     }
@@ -45,7 +45,7 @@ namespace TestPlanManager.Models
     {
         /// <summary>Test is required to pass for this sprint</summary>
         InScope,
-        
+
         /// <summary>Test is not required for this sprint (excluded from pass rate)</summary>
         OutOfScope
     }
@@ -63,13 +63,13 @@ namespace TestPlanManager.Models
     {
         /// <summary>Test has not been executed yet</summary>
         NotRun,
-        
+
         /// <summary>Test executed and passed (all acceptance criteria met)</summary>
         Passed,
-        
+
         /// <summary>Test executed and failed (acceptance criteria not met)</summary>
         Failed,
-        
+
         /// <summary>Test execution blocked (cannot execute due to external issue/dependency)</summary>
         Blocked
     }
@@ -86,13 +86,13 @@ namespace TestPlanManager.Models
     {
         /// <summary>Not verified in production</summary>
         NotRun,
-        
+
         /// <summary>Working correctly in production</summary>
         Passed,
-        
+
         /// <summary>Issue found in production</summary>
         Failed,
-        
+
         /// <summary>Cannot verify in production (blocked)</summary>
         Blocked
     }

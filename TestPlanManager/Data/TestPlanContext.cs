@@ -113,7 +113,7 @@ namespace TestPlanManager.Data
 
             // ENUM CONVERSIONS: Store enums as strings for readability in database
             // Instead of storing enum values as numbers (0, 1, 2), store meaningful names ("InScope", "OutOfScope")
-            
+
             modelBuilder
                 .Entity<TestCategory>()
                 .Property(tc => tc.Department)

@@ -28,7 +28,7 @@ namespace TestPlanManager.Controllers
     public class TestController : ControllerBase
     {
         private readonly TestPlanContext _ctx;  // Database context for data access
-        
+
         public TestController(TestPlanContext ctx) => _ctx = ctx;
 
         /// <summary>
@@ -49,7 +49,7 @@ namespace TestPlanManager.Controllers
             var t = await _ctx.Tests
                 .AsNoTracking()
                 .FirstOrDefaultAsync(test => test.TestId == id);
-            
+
             // Return 404 if not found, otherwise return test data
             return t == null ? NotFound() : Ok(t);
         }
@@ -68,7 +68,7 @@ namespace TestPlanManager.Controllers
         {
             _ctx.Tests.Add(test);
             await _ctx.SaveChangesAsync();
-            
+
             // Return 201 Created status with location of new resource
             return CreatedAtAction(nameof(Get), new { id = test.TestId }, test);
         }
@@ -149,22 +149,22 @@ namespace TestPlanManager.Controllers
             /// The new execution status: Passed, Failed, Blocked, or NotRun
             /// </summary>
             public ExecutionStatus ExecutionStatus { get; set; }
-            
+
             /// <summary>
             /// Production environment information (e.g., "v1.2.3", "Build 456")
             /// </summary>
             public string? Production { get; set; }
-            
+
             /// <summary>
             /// Test execution comments or notes
             /// </summary>
             public string? Comments { get; set; }
-            
+
             /// <summary>
             /// URL to test evidence (screenshot, video, etc.)
             /// </summary>
             public string? MediaUrl { get; set; }
-            
+
             /// <summary>
             /// Legacy property name for MediaUrl (kept for backward compatibility)
             /// </summary>
