@@ -25,6 +25,17 @@ public class LoginWith2faViewModel
     public string? ReturnUrl { get; set; }
 }
 
+public class LoginWithRecoveryCodeViewModel
+{
+    [Required]
+    [Display(Name = "Recovery code")]
+    public string RecoveryCode { get; set; } = string.Empty;
+
+    public bool RememberMe { get; set; }
+
+    public string? ReturnUrl { get; set; }
+}
+
 public class EnableAuthenticatorViewModel
 {
     [Required]

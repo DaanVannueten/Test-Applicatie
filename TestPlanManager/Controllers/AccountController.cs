@@ -288,6 +288,65 @@ public class AccountController : Controller
     }
 
     [HttpGet]
+    [AllowAnonymous]
+    public async Task<IActionResult> LoginWithRecoveryCode(bool rememberMe, string? returnUrl = null)
+    {
+        var user = await _signInManager.GetTwoFactorAuthenticationUserAsync();
+        if (user == null)
+        {
+            TempData["ErrorMessage"] = "Your login session expired. Please sign in again.";
+            return RedirectToAction(nameof(Login));
+        }
+
+        return View(new LoginWithRecoveryCodeViewModel
+        {
+            RememberMe = rememberMe,
+            ReturnUrl = returnUrl
+        });
+    }
+
+    [HttpPost]
+    [AllowAnonymous]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> LoginWithRecoveryCode(LoginWithRecoveryCodeViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        var user = await _signInManager.GetTwoFactorAuthenticationUserAsync();
+        if (user == null)
+        {
+            TempData["ErrorMessage"] = "Your login session expired. Please sign in again.";
+            return RedirectToAction(nameof(Login));
+        }
+
+        // Keep hyphens because ASP.NET Identity recovery codes are generated in hyphenated format.
+        var recoveryCode = model.RecoveryCode.Replace(" ", string.Empty);
+        var result = await _signInManager.TwoFactorRecoveryCodeSignInAsync(recoveryCode);
+
+        if (result.Succeeded)
+        {
+            if (!string.IsNullOrWhiteSpace(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
+            {
+                return LocalRedirect(model.ReturnUrl);
+            }
+
+            return RedirectToAction("Index", "TestPlanVersion");
+        }
+
+        if (result.IsLockedOut)
+        {
+            AddLockoutErrorMessage(user);
+            return View(model);
+        }
+
+        ModelState.AddModelError(string.Empty, "Invalid recovery code.");
+        return View(model);
+    }
+
+    [HttpGet]
     [Authorize]
     public async Task<IActionResult> EnableAuthenticator()
     {
