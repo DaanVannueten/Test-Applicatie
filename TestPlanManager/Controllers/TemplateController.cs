@@ -155,7 +155,10 @@ public class TemplateController : Controller
 
         if (!ModelState.IsValid)
         {
-            TempData["ErrorMessage"] = "Version/build number is required.";
+            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).Where(m => !string.IsNullOrWhiteSpace(m)).ToList();
+            TempData["ErrorMessage"] = errors.Any()
+                ? string.Join(" ", errors)
+                : "Use only letters, numbers, periods (.), underscores (_), or hyphens (-). Spaces are not allowed.";
             return RedirectToAction(nameof(Details), new { id = model.TestTemplateId });
         }
 

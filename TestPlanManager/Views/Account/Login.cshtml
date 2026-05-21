@@ -38,7 +38,7 @@
 
                         <div class="mb-3">
                             <label asp-for="Password" class="form-label"></label>
-                            <input asp-for="Password" class="form-control" type="password" autocomplete="current-password" placeholder="Enter password" onpaste="return false;" />
+                            <input asp-for="Password" class="form-control" type="password" autocomplete="current-password" maxlength="128" spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="Enter password" />
                             <span asp-validation-for="Password" class="text-danger"></span>
                         </div>
 

@@ -29,7 +29,7 @@
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="TestTemplateId" value="@Model.Template.TestTemplateId" />
                     <div class="input-group">
-                        <input class="form-control" name="BuildNr" placeholder="Build number (e.g. 2026.03.12)" required />
+                        <input class="form-control" name="BuildNr" placeholder="Build number (e.g. 2026.03.12)" required pattern="[A-Za-z0-9._\-]+" title="Use only letters, numbers, periods (.), underscores (_), or hyphens (-). Spaces are not allowed." />
                         <button class="btn btn-primary" type="submit">Create Cycle</button>
                     </div>
                 </form>

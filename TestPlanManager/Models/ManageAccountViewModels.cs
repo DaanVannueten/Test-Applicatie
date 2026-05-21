@@ -12,7 +12,8 @@ public class ManageAccountPageViewModel
 
 public class LoginWith2faViewModel
 {
-    [Required]
+    [Required(ErrorMessage = "Authenticator code is required")]
+    [RegularExpression(@"^\d{6}$", ErrorMessage = "Code must be exactly 6 digits")]
     [Display(Name = "Authenticator code")]
     public string TwoFactorCode { get; set; } = string.Empty;
 
@@ -26,8 +27,9 @@ public class LoginWith2faViewModel
 
 public class EnableAuthenticatorViewModel
 {
-    [Required]
-    [StringLength(7, ErrorMessage = "Code must be 6 digits.", MinimumLength = 6)]
+    [Required(ErrorMessage = "Verification code is required")]
+    [StringLength(7, ErrorMessage = "Code must be 6 digits", MinimumLength = 6)]
+    [RegularExpression(@"^\d{6}$", ErrorMessage = "Code must be exactly 6 digits")]
     [Display(Name = "Verification code")]
     public string Code { get; set; } = string.Empty;
 
@@ -38,39 +40,46 @@ public class EnableAuthenticatorViewModel
 
 public class ResetUserMfaInputModel
 {
-    [Required]
+    [Required(ErrorMessage = "User ID is required")]
+    [StringLength(450, ErrorMessage = "User ID cannot exceed 450 characters")]
     public string UserId { get; set; } = string.Empty;
 }
 
 public class UpdateEmailInputModel
 {
-    [Required]
-    [EmailAddress]
+    [Required(ErrorMessage = "Email address is required")]
+    [EmailAddress(ErrorMessage = "Please enter a valid email address")]
+    [StringLength(256, ErrorMessage = "Email cannot exceed 256 characters")]
     [Display(Name = "New Email")]
     public string NewEmail { get; set; } = string.Empty;
 
-    [Required]
+    [Required(ErrorMessage = "Current password is required to change email")]
     [DataType(DataType.Password)]
+    [StringLength(128, ErrorMessage = "Password cannot exceed 128 characters")]
     [Display(Name = "Current Password")]
     public string CurrentPassword { get; set; } = string.Empty;
 }
 
 public class ChangePasswordInputModel
 {
-    [Required]
+    [Required(ErrorMessage = "Current password is required")]
     [DataType(DataType.Password)]
+    [StringLength(128, ErrorMessage = "Password cannot exceed 128 characters")]
     [Display(Name = "Current Password")]
     public string CurrentPassword { get; set; } = string.Empty;
 
-    [Required]
+    [Required(ErrorMessage = "New password is required")]
     [DataType(DataType.Password)]
-    [MinLength(8)]
+    [MinLength(8, ErrorMessage = "Password must be at least 8 characters long")]
+    [StringLength(128, ErrorMessage = "Password cannot exceed 128 characters")]
+    [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&_\-+=])", 
+        ErrorMessage = "Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character")]
     [Display(Name = "New Password")]
     public string NewPassword { get; set; } = string.Empty;
 
-    [Required]
+    [Required(ErrorMessage = "Please confirm your new password")]
     [DataType(DataType.Password)]
+    [Compare(nameof(NewPassword), ErrorMessage = "New password and confirmation do not match")]
     [Display(Name = "Confirm New Password")]
-    [Compare(nameof(NewPassword), ErrorMessage = "New password and confirmation do not match.")]
     public string ConfirmNewPassword { get; set; } = string.Empty;
 }

@@ -222,7 +222,7 @@
 </style>
 
 @section Scripts {
-    <script>
+    <script nonce="@(Context.Items["CspNonce"])">
         function openMediaPreview(isVideo, sourceUrl) {
             var modalElement = document.getElementById('mediaPreviewModal');
             var imageElement = document.getElementById('mediaPreviewImage');

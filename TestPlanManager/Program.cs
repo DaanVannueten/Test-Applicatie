@@ -4,6 +4,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using System.Diagnostics;
+using System.Security.Cryptography;
 using TestPlanManager.Data;
 using TestPlanManager.Models;
 /// <summary>
@@ -365,6 +366,52 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
+
+/// <summary>
+/// SECURITY HEADERS MIDDLEWARE
+/// Adds HTTP security headers to prevent XSS, clickjacking, and other attacks.
+/// These headers are critical for protecting against script injection and related vulnerabilities.
+/// </summary>
+app.Use(async (context, next) =>
+{
+    var cspNonce = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
+    context.Items["CspNonce"] = cspNonce;
+
+    // Content Security Policy (CSP) - prevents script injection and XSS attacks
+    // Restricts resources to only be loaded from the same origin
+    context.Response.Headers["Content-Security-Policy"] =
+        "default-src 'self'; " +
+        "script-src 'self' 'nonce-" + cspNonce + "'; " +
+        "style-src 'self' 'unsafe-inline'; " +
+        "img-src 'self' data: https:; " +
+        "font-src 'self'; " +
+        "connect-src 'self'; " +
+        "frame-ancestors 'none'; " +
+        "base-uri 'self'; " +
+        "form-action 'self'";
+
+    // X-Content-Type-Options - prevents MIME type sniffing
+    // Forces browser to honor the Content-Type header (e.g., don't treat JS as text/html)
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+
+    // X-Frame-Options - prevents clickjacking attacks by disallowing framing
+    context.Response.Headers["X-Frame-Options"] = "DENY";
+
+    // X-XSS-Protection - enables XSS protection in older browsers
+    // Tells browser to block page if XSS attack detected
+    context.Response.Headers["X-XSS-Protection"] = "1; mode=block";
+
+    // Referrer-Policy - controls how much referrer information is shared
+    // 'strict-origin-when-cross-origin' balances privacy and functionality
+    context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+
+    // Permissions-Policy - controls which browser features can be used
+    // Disables most sensitive features for security
+    context.Response.Headers["Permissions-Policy"] =
+        "geolocation=(), microphone=(), camera=(), payment=(), usb=()";
+
+    await next();
+});
 
 // Enable routing to match URLs to controller actions
 app.UseRouting();

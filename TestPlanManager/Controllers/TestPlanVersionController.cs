@@ -76,7 +76,10 @@ namespace TestPlanManager.Controllers
 
             if (!ModelState.IsValid)
             {
-                TempData["ErrorMessage"] = "New build number is invalid.";
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).Where(m => !string.IsNullOrWhiteSpace(m)).ToList();
+                TempData["ErrorMessage"] = errors.Any()
+                    ? string.Join(" ", errors)
+                    : "Use only letters, numbers, periods (.), underscores (_), or hyphens (-). Spaces are not allowed.";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -115,7 +118,10 @@ namespace TestPlanManager.Controllers
 
             if (!ModelState.IsValid)
             {
-                TempData["ErrorMessage"] = "Enter a valid build number and source version.";
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).Where(m => !string.IsNullOrWhiteSpace(m)).ToList();
+                TempData["ErrorMessage"] = errors.Any()
+                    ? string.Join(" ", errors)
+                    : "Use only letters, numbers, periods (.), underscores (_), or hyphens (-). Spaces are not allowed.";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -206,12 +212,9 @@ namespace TestPlanManager.Controllers
             if (!ModelState.IsValid)
             {
                 var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).Where(m => !string.IsNullOrWhiteSpace(m)).ToList();
-                var errorMessage = errors.Any() ? string.Join(" ", errors) : "Enter a valid template name and source cycle.";
-
-                if (ModelState.ContainsKey("BuildNr") && ModelState["BuildNr"].Errors.Any(e => e.ErrorMessage.Contains("spaces") || e.ErrorMessage.Contains("only contain")))
-                {
-                    errorMessage += " Use only letters, numbers, periods (.), underscores (_), or hyphens (-); remove spaces.";
-                }
+                var errorMessage = errors.Any()
+                    ? string.Join(" ", errors)
+                    : "Use only letters, numbers, periods (.), underscores (_), or hyphens (-). Spaces are not allowed.";
 
                 // Return the Index view directly with ViewData so the modal can remain open and the user can correct the input.
                 ViewData["ShowMakeTemplateModal"] = true;

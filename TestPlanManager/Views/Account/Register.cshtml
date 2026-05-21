@@ -19,13 +19,13 @@
 
                     <div class="mb-3">
                         <label asp-for="Password" class="form-label"></label>
-                        <input asp-for="Password" class="form-control" type="password" autocomplete="new-password" onpaste="return false;" />
+                        <input asp-for="Password" class="form-control" type="password" autocomplete="new-password" maxlength="128" spellcheck="false" autocapitalize="off" autocorrect="off" />
                         <span asp-validation-for="Password" class="text-danger"></span>
                     </div>
 
                     <div class="mb-3">
                         <label asp-for="ConfirmPassword" class="form-label"></label>
-                        <input asp-for="ConfirmPassword" class="form-control" type="password" autocomplete="new-password" onpaste="return false;" />
+                        <input asp-for="ConfirmPassword" class="form-control" type="password" autocomplete="new-password" maxlength="128" spellcheck="false" autocapitalize="off" autocorrect="off" />
                         <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
                     </div>
 
@@ -54,7 +54,7 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-    <script>
+    <script nonce="@(Context.Items["CspNonce"])">
         (function () {
             const roleDescriptions = {
                 "Tester": "Can execute test work and update results. Cannot manage users, templates, or admin-only settings.",

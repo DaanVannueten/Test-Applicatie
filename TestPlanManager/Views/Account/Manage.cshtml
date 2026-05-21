@@ -31,19 +31,19 @@
 
                         <div class="mb-3">
                             <label asp-for="ChangePassword.CurrentPassword" class="form-label"></label>
-                            <input asp-for="ChangePassword.CurrentPassword" class="form-control" type="password" autocomplete="current-password" />
+                            <input asp-for="ChangePassword.CurrentPassword" class="form-control" type="password" autocomplete="current-password" maxlength="128" spellcheck="false" autocapitalize="off" autocorrect="off" />
                             <span asp-validation-for="ChangePassword.CurrentPassword" class="text-danger"></span>
                         </div>
 
                         <div class="mb-3">
                             <label asp-for="ChangePassword.NewPassword" class="form-label"></label>
-                            <input asp-for="ChangePassword.NewPassword" class="form-control" type="password" autocomplete="new-password" />
+                            <input asp-for="ChangePassword.NewPassword" class="form-control" type="password" autocomplete="new-password" maxlength="128" spellcheck="false" autocapitalize="off" autocorrect="off" />
                             <span asp-validation-for="ChangePassword.NewPassword" class="text-danger"></span>
                         </div>
 
                         <div class="mb-3">
                             <label asp-for="ChangePassword.ConfirmNewPassword" class="form-label"></label>
-                            <input asp-for="ChangePassword.ConfirmNewPassword" class="form-control" type="password" autocomplete="new-password" />
+                            <input asp-for="ChangePassword.ConfirmNewPassword" class="form-control" type="password" autocomplete="new-password" maxlength="128" spellcheck="false" autocapitalize="off" autocorrect="off" />
                             <span asp-validation-for="ChangePassword.ConfirmNewPassword" class="text-danger"></span>
                         </div>
 

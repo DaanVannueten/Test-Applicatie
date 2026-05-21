@@ -59,7 +59,7 @@
                     <form method="post" asp-action="Create" asp-controller="TestPlanVersion">
                         @Html.AntiForgeryToken()
                         <div class="mb-2">
-                            <input type="text" name="BuildNr" class="form-control" placeholder="Template or cycle name" required />
+                            <input type="text" name="BuildNr" class="form-control" placeholder="Template or cycle name" required pattern="[A-Za-z0-9._\-]+" title="Use only letters, numbers, periods (.), underscores (_), or hyphens (-). Spaces are not allowed." />
                         </div>
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="checkbox" name="IsTemplate" value="true" id="isTemplateCheck" />
@@ -87,7 +87,7 @@
                     @Html.AntiForgeryToken()
                     <div class="row g-2">
                         <div class="col-md-4">
-                            <input type="text" name="BuildNr" class="form-control" placeholder="New cycle name" required />
+                            <input type="text" name="BuildNr" class="form-control" placeholder="New cycle name" required pattern="[A-Za-z0-9._\-]+" title="Use only letters, numbers, periods (.), underscores (_), or hyphens (-). Spaces are not allowed." />
                         </div>
                         <div class="col-md-5">
                             <select name="CopyFromSprintId" class="form-select" required>
@@ -403,7 +403,7 @@ else
                             <div id="makeTemplateError" class="alert alert-danger d-none" role="alert" style="display:none"></div>
 
                             <label for="makeTemplateNameInput" class="form-label">Template name</label>
-                            <input id="makeTemplateNameInput" type="text" name="BuildNr" class="form-control" placeholder="Enter template name" required pattern="[A-Za-z0-9._\-]+" title="Use only letters, numbers, periods (.), underscores (_), or hyphens (-); no spaces." value="@((ViewData["CreateTemplateName"] as string) ?? (TempData["CreateTemplateName"] as string) ?? "")" />
+                            <input id="makeTemplateNameInput" type="text" name="BuildNr" class="form-control" placeholder="Enter template name" required pattern="[A-Za-z0-9._\-]+" title="Use only letters, numbers, periods (.), underscores (_), or hyphens (-). Spaces are not allowed." value="@((ViewData["CreateTemplateName"] as string) ?? (TempData["CreateTemplateName"] as string) ?? "")" />
                         </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -416,7 +416,7 @@ else
 }
 
 @section Scripts {
-    <script>
+    <script nonce="@(Context.Items["CspNonce"])">
         function prepareMakeTemplateModal(trigger) {
             var sourceCycleId = trigger.getAttribute('data-source-cycle-id');
             var sourceCycleName = trigger.getAttribute('data-source-cycle-name') || '';
@@ -437,7 +437,7 @@ else
         }
     </script>
 
-    <script>
+    <script nonce="@(Context.Items["CspNonce"])">
                 document.addEventListener('DOMContentLoaded', function() {
             // Read server-provided state from hidden inputs to avoid JSON injection issues
             var showFlagEl = document.getElementById('makeTemplateShowFlag');
@@ -477,7 +477,7 @@ else
         });
     </script>
 
-    <script>
+    <script nonce="@(Context.Items["CspNonce"])">
         document.addEventListener('DOMContentLoaded', function() {
             console.debug('MakeTemplate: DOMContentLoaded');
             var form = document.getElementById('makeTemplateForm');

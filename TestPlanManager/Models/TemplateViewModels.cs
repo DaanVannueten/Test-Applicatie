@@ -64,6 +64,6 @@ public class CreateCycleFromTemplateInputModel
 
     [Required]
     [StringLength(50)]
-    [RegularExpression(@"^[A-Za-z0-9._-]+$", ErrorMessage = "Build number may only contain letters, numbers, dot, underscore, and hyphen.")]
+    [RegularExpression(@"^[A-Za-z0-9._-]+$", ErrorMessage = "Use only letters, numbers, periods (.), underscores (_), or hyphens (-). Spaces are not allowed.")]
     public string BuildNr { get; set; } = string.Empty;
 }
