@@ -148,11 +148,8 @@ else
                     </h2>
                     <div id="@collapseId" class="accordion-collapse collapse" aria-labelledby="@headerId">
                         <div class="accordion-body">
-                            <div class="d-flex flex-wrap gap-2 mb-3">
-                                @if (canManageVersions)
-                                {
-                                    <a class="btn btn-sm btn-outline-secondary" asp-controller="Home" asp-action="Index" asp-route-sprintId="@template.SprintId" asp-route-includeTemplates="true">Manage Template</a>
-                                }
+                            <div class="d-flex flex-wrap gap-2 mb-3 justify-content-end">
+                                
                                 @if (canManageVersions && !Model.ShowArchived)
                                 {
                                     <form method="post" asp-action="Archive" asp-controller="TestPlanVersion" onsubmit="return confirm('Archive this build? It will be hidden from the active versions list.');">
@@ -193,7 +190,7 @@ else
                                                 <th>Categories</th>
                                                 <th>Tests</th>
                                                 <th>Last Executed</th>
-                                                <th>Last Worked By</th>
+                                                <th>Last Edited By</th>
                                                 <th>Actions</th>
                                             </tr>
                                         </thead>
@@ -298,7 +295,7 @@ else
                                         <th>Categories</th>
                                         <th>Tests</th>
                                         <th>Last Executed</th>
-                                        <th>Last Worked By</th>
+                                        <th>Last Edited By</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
@@ -389,19 +386,28 @@ else
                     <h5 class="modal-title" id="makeTemplateModalLabel">Make Template</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form method="post" asp-action="CreateTemplateFromCycle" asp-controller="TestPlanVersion">
+                <form id="makeTemplateForm" method="post" asp-action="CreateTemplateFromCycle" asp-controller="TestPlanVersion">
                     @Html.AntiForgeryToken()
                     <div class="modal-body">
-                        <input type="hidden" id="makeTemplateSourceCycleId" name="SourceCycleSprintId" />
+                            <input type="hidden" id="makeTemplateSourceCycleId" name="SourceCycleSprintId" value="@((ViewData["CreateTemplateSourceCycleId"] as string) ?? (TempData["CreateTemplateSourceCycleId"] as string) ?? "")" />
+                            <input type="hidden" id="makeTemplateShowFlag" value="@(((ViewData["ShowMakeTemplateModal"] != null) || (TempData["ShowMakeTemplateModal"] != null)) ? "1" : "")" />
+                            <input type="hidden" id="makeTemplateServerError" value="@System.Net.WebUtility.HtmlEncode((ViewData["ErrorMessage"] as string) ?? (TempData["ErrorMessage"] as string) ?? "")" />
 
-                        <div class="mb-2 small text-muted" id="makeTemplateSourceCycleText"></div>
+                            <div class="mb-2 small text-muted" id="makeTemplateSourceCycleText">@((ViewData["CreateTemplateSourceCycleName"] as string) ?? (TempData["CreateTemplateSourceCycleName"] as string) ?? "")</div>
 
-                        <label for="makeTemplateNameInput" class="form-label">Template name</label>
-                        <input id="makeTemplateNameInput" type="text" name="BuildNr" class="form-control" placeholder="Enter template name" required />
-                    </div>
+                            @{
+                                var serverError = (ViewData["ErrorMessage"] as string) ?? (TempData["ErrorMessage"] as string);
+                                var showModalServer = (ViewData["ShowMakeTemplateModal"] != null) || (TempData["ShowMakeTemplateModal"] != null);
+                            }
+
+                            <div id="makeTemplateError" class="alert alert-danger d-none" role="alert" style="display:none"></div>
+
+                            <label for="makeTemplateNameInput" class="form-label">Template name</label>
+                            <input id="makeTemplateNameInput" type="text" name="BuildNr" class="form-control" placeholder="Enter template name" required pattern="[A-Za-z0-9._\-]+" title="Use only letters, numbers, periods (.), underscores (_), or hyphens (-); no spaces." value="@((ViewData["CreateTemplateName"] as string) ?? (TempData["CreateTemplateName"] as string) ?? "")" />
+                        </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Create template</button>
+                        <button id="makeTemplateSubmit" type="submit" class="btn btn-primary">Create template</button>
                     </div>
                 </form>
             </div>
@@ -429,5 +435,111 @@ else
             templateNameInput.focus();
             templateNameInput.select();
         }
+    </script>
+
+    <script>
+                document.addEventListener('DOMContentLoaded', function() {
+            // Read server-provided state from hidden inputs to avoid JSON injection issues
+            var showFlagEl = document.getElementById('makeTemplateShowFlag');
+            var serverErrorEl = document.getElementById('makeTemplateServerError');
+            var sourceTextEl = document.getElementById('makeTemplateSourceCycleText');
+            var sourceIdEl = document.getElementById('makeTemplateSourceCycleId');
+            var nameInput = document.getElementById('makeTemplateNameInput');
+
+            var showModal = showFlagEl && showFlagEl.value === '1';
+            var errorMessage = serverErrorEl && serverErrorEl.value ? serverErrorEl.value : '';
+
+            if (showModal) {
+                var modalEl = document.getElementById('makeTemplateModal');
+                if (!modalEl) return;
+
+                var errorDiv = document.getElementById('makeTemplateError');
+                if (errorMessage) {
+                    if (errorDiv) {
+                        errorDiv.textContent = errorMessage;
+                        errorDiv.classList.remove('d-none');
+                        errorDiv.style.display = '';
+                    }
+                }
+
+                try {
+                    if (sourceTextEl && sourceTextEl.textContent) sourceTextEl.textContent = sourceTextEl.textContent;
+                    if (sourceIdEl && sourceIdEl.value) sourceIdEl.value = sourceIdEl.value;
+                    if (nameInput && nameInput.value) { nameInput.focus(); nameInput.select(); }
+                } catch (e) { }
+
+                // Only show modal if not already visible to avoid stacked backdrops
+                if (!modalEl.classList.contains('show')) {
+                    var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    modal.show();
+                }
+            }
+        });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.debug('MakeTemplate: DOMContentLoaded');
+            var form = document.getElementById('makeTemplateForm');
+            if (!form) return;
+
+            var submitBtn = document.getElementById('makeTemplateSubmit');
+            if (!submitBtn) return;
+
+            submitBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.debug('MakeTemplate: submitBtn clicked');
+                var nameInput = document.getElementById('makeTemplateNameInput');
+                var errorDiv = document.getElementById('makeTemplateError');
+                if (!nameInput) return;
+
+                if (!nameInput.checkValidity()) {
+                    if (errorDiv) {
+                        errorDiv.textContent = nameInput.title || 'Invalid template name.';
+                        errorDiv.classList.remove('d-none');
+                        errorDiv.style.display = '';
+                    }
+
+                    var modalEl = document.getElementById('makeTemplateModal');
+                    if (modalEl && !modalEl.classList.contains('show')) {
+                        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                        modal.show();
+                    }
+
+                    console.debug('MakeTemplate: invalid on click - shown error');
+                    return;
+                }
+
+                // valid - submit programmatically
+                console.debug('MakeTemplate: valid on click - submitting');
+                form.submit();
+            });
+
+            // Also block any native form submit (e.g. Enter key) when invalid.
+            // Always block native form submission (Enter key etc.) so we control submission.
+            form.addEventListener('submit', function (e) {
+                console.debug('MakeTemplate: form submit event');
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            });
+
+            // Keep an explicit handler to show validation UI when programmatic or other attempts occur
+            form.addEventListener('invalid', function (e) {
+                console.debug('MakeTemplate: invalid event captured');
+                var nameInput = document.getElementById('makeTemplateNameInput');
+                var errorDiv = document.getElementById('makeTemplateError');
+                if (errorDiv && nameInput && !nameInput.checkValidity()) {
+                    errorDiv.textContent = nameInput.title || 'Invalid template name.';
+                    errorDiv.classList.remove('d-none');
+                }
+                var modalEl = document.getElementById('makeTemplateModal');
+                if (modalEl && !modalEl.classList.contains('show')) {
+                    var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    modal.show();
+                }
+            }, true);
+        });
     </script>
 }

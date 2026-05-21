@@ -7,7 +7,7 @@ namespace TestPlanManager.Models
     {
         [Required(ErrorMessage = "Build number is required.")]
         [StringLength(50, ErrorMessage = "Build number cannot be longer than 50 characters.")]
-        [RegularExpression(@"^[A-Za-z0-9._-]+$", ErrorMessage = "Build number may only contain letters, numbers, dot, underscore, and hyphen.")]
+        [RegularExpression(@"^[A-Za-z0-9._-]+$", ErrorMessage = "Build number may only contain letters, numbers, periods (.), underscores (_), and hyphens (-); spaces are not allowed.")]
         public string BuildNr { get; set; } = string.Empty;
 
         public bool IsTemplate { get; set; }

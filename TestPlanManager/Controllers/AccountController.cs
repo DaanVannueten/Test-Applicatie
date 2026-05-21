@@ -221,7 +221,6 @@ public class AccountController : Controller
         {
             CurrentEmail = user.Email ?? user.UserName ?? string.Empty,
             IsTwoFactorEnabled = await _userManager.GetTwoFactorEnabledAsync(user),
-            RecoveryCodesLeft = await _userManager.CountRecoveryCodesAsync(user),
             UpdateEmail = new UpdateEmailInputModel
             {
                 NewEmail = user.Email ?? user.UserName ?? string.Empty
@@ -288,65 +287,6 @@ public class AccountController : Controller
     }
 
     [HttpGet]
-    [AllowAnonymous]
-    public async Task<IActionResult> LoginWithRecoveryCode(bool rememberMe, string? returnUrl = null)
-    {
-        var user = await _signInManager.GetTwoFactorAuthenticationUserAsync();
-        if (user == null)
-        {
-            TempData["ErrorMessage"] = "Your login session expired. Please sign in again.";
-            return RedirectToAction(nameof(Login));
-        }
-
-        return View(new LoginWithRecoveryCodeViewModel
-        {
-            RememberMe = rememberMe,
-            ReturnUrl = returnUrl
-        });
-    }
-
-    [HttpPost]
-    [AllowAnonymous]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> LoginWithRecoveryCode(LoginWithRecoveryCodeViewModel model)
-    {
-        if (!ModelState.IsValid)
-        {
-            return View(model);
-        }
-
-        var user = await _signInManager.GetTwoFactorAuthenticationUserAsync();
-        if (user == null)
-        {
-            TempData["ErrorMessage"] = "Your login session expired. Please sign in again.";
-            return RedirectToAction(nameof(Login));
-        }
-
-        // Keep hyphens because ASP.NET Identity recovery codes are generated in hyphenated format.
-        var recoveryCode = model.RecoveryCode.Replace(" ", string.Empty);
-        var result = await _signInManager.TwoFactorRecoveryCodeSignInAsync(recoveryCode);
-
-        if (result.Succeeded)
-        {
-            if (!string.IsNullOrWhiteSpace(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
-            {
-                return LocalRedirect(model.ReturnUrl);
-            }
-
-            return RedirectToAction("Index", "TestPlanVersion");
-        }
-
-        if (result.IsLockedOut)
-        {
-            AddLockoutErrorMessage(user);
-            return View(model);
-        }
-
-        ModelState.AddModelError(string.Empty, "Invalid recovery code.");
-        return View(model);
-    }
-
-    [HttpGet]
     [Authorize]
     public async Task<IActionResult> EnableAuthenticator()
     {
@@ -400,13 +340,9 @@ public class AccountController : Controller
         }
 
         await _userManager.SetTwoFactorEnabledAsync(user, true);
-        var recoveryCodes = await _userManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
         await _signInManager.RefreshSignInAsync(user);
-
-        return View("ShowRecoveryCodes", new ShowRecoveryCodesViewModel
-        {
-            RecoveryCodes = (recoveryCodes ?? []).ToArray()
-        });
+        TempData["SuccessMessage"] = "MFA has been enabled.";
+        return RedirectToAction(nameof(Manage));
     }
 
     [HttpPost]
@@ -425,31 +361,6 @@ public class AccountController : Controller
         await _signInManager.RefreshSignInAsync(user);
         TempData["SuccessMessage"] = "MFA has been disabled.";
         return RedirectToAction(nameof(Manage));
-    }
-
-    [HttpPost]
-    [Authorize]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> RegenerateRecoveryCodes()
-    {
-        var user = await _userManager.GetUserAsync(User);
-        if (user == null)
-        {
-            await _signInManager.SignOutAsync();
-            return RedirectToAction(nameof(Login));
-        }
-
-        if (!await _userManager.GetTwoFactorEnabledAsync(user))
-        {
-            TempData["ErrorMessage"] = "Enable MFA before generating recovery codes.";
-            return RedirectToAction(nameof(Manage));
-        }
-
-        var recoveryCodes = await _userManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
-        return View("ShowRecoveryCodes", new ShowRecoveryCodesViewModel
-        {
-            RecoveryCodes = (recoveryCodes ?? []).ToArray()
-        });
     }
 
     /// <summary>

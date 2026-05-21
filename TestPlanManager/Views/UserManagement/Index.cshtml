@@ -87,6 +87,14 @@
                                     else
                                     {
                                         <div class="user-actions">
+                                            <form asp-action="ResetMfa" asp-controller="UserManagement" method="post" class="action-form" onsubmit="return confirm('Reset MFA for this user? They will need to set it up again.');">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="UserId" value="@user.UserId" />
+                                                <button class="btn btn-sm btn-outline-secondary action-btn" type="submit" title="Reset MFA setup">
+                                                    <i class="bi bi-arrow-counterclockwise me-1"></i>Reset MFA
+                                                </button>
+                                            </form>
+
                                             @if (user.IsActive)
                                             {
                                                 <form asp-action="UpdateActive" asp-controller="UserManagement" method="post" class="action-form">
@@ -188,17 +196,22 @@
         display: flex;
         align-items: center;
         gap: 0.4rem;
-        flex-wrap: wrap;
-        white-space: normal;
+        /* Keep buttons on a single line on larger screens; allow horizontal scroll if needed */
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
 
     .action-form {
         margin: 0;
+        display: inline-flex; /* prevent forms from becoming block-level wrappers */
+        align-items: center;
     }
 
     .action-btn {
-        min-width: 102px;
+        min-width: 92px;
         text-align: center;
+        white-space: nowrap;
     }
 
     @@media (max-width: 768px) {

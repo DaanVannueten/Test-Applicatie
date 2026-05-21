@@ -44,7 +44,7 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <form asp-action="EditTest" asp-controller="TestCategoryMvc" method="post" enctype="multipart/form-data">
+                    <form asp-action="EditTest" asp-controller="TestCategoryMvc" method="post" enctype="multipart/form-data" autocomplete="off">
                         @Html.AntiForgeryToken()
                         <input type="hidden" asp-for="TestId" />
                         <input type="hidden" asp-for="TestCategoryId" />
@@ -90,8 +90,8 @@
                         </div>
 
                         <div class="mb-4">
-                            <label class="form-label"><i class="bi bi-images me-2 text-primary"></i>Media Upload (photo/video)</label>
-                            <input name="mediaFile" class="form-control" type="file" accept="image/*,video/*" />
+                            <label for="mediaFile" class="form-label"><i class="bi bi-images me-2 text-primary"></i>Media Upload (photo/video)</label>
+                                <input id="mediaFile" name="mediaFile" class="form-control" type="file" accept="image/*,video/*" />
                             <div class="form-text">Allowed: JPG, PNG, GIF, WEBP, BMP, MP4, WEBM, MOV, AVI. Max 50MB.</div>
                         </div>
 

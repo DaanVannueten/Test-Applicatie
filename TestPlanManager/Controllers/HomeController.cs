@@ -94,7 +94,6 @@ public class HomeController : Controller
         var passedInScope = inScopeTests.Count(t => t.ExecutionStatus == Models.ExecutionStatus.Passed);
 
         var overallPassRate = inScopeTotal == 0 ? 0f : ((float)passedInScope / inScopeTotal) * 100;
-        var passedRate = inScopeTotal == 0 ? 0f : ((float)passedInScope / inScopeTotal) * 100;
         var failedRate = totalTestCases == 0 ? 0f : ((float)failed / totalTestCases) * 100;
         var blockedRate = totalTestCases == 0 ? 0f : ((float)blocked / totalTestCases) * 100;
         var outOfScopeRate = totalTestCases == 0 ? 0f : ((float)outOfScope / totalTestCases) * 100;
@@ -127,7 +126,7 @@ public class HomeController : Controller
             TestsExecuted = testsExecuted,
             OverallPassRate = overallPassRate,
             OpenOrFailed = openOrFailed,
-            PassedRate = passedRate,
+            PassedRate = overallPassRate,
             FailedRate = failedRate,
             BlockedRate = blockedRate,
             OutOfScopeRate = outOfScopeRate
@@ -161,9 +160,7 @@ public class HomeController : Controller
         {
             foreach (var test in category.Tests)
             {
-                test.ExecutionStatus = Models.ExecutionStatus.NotRun;
-                test.ExecutedAt = null;
-                test.LastExecutedBy = null;
+                TestExecutionHelper.ClearExecution(test);
             }
 
             category.TestDate = null;

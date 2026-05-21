@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using TestPlanManager.Models;
 
 namespace TestPlanManager.Controllers;
@@ -10,10 +11,12 @@ namespace TestPlanManager.Controllers;
 public class UserManagementController : Controller
 {
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly ILogger<UserManagementController> _logger;
 
-    public UserManagementController(UserManager<ApplicationUser> userManager)
+    public UserManagementController(UserManager<ApplicationUser> userManager, ILogger<UserManagementController> logger)
     {
         _userManager = userManager;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -128,6 +131,56 @@ public class UserManagementController : Controller
         TempData["SuccessMessage"] = model.IsActive
             ? $"User {user.Email} has been activated."
             : $"User {user.Email} has been deactivated.";
+
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResetMfa(ResetUserMfaInputModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            TempData["ErrorMessage"] = "Invalid request.";
+            return RedirectToAction(nameof(Index));
+        }
+        var user = await _userManager.FindByIdAsync(model.UserId);
+        if (user == null)
+        {
+            TempData["ErrorMessage"] = "User not found.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var currentUserId = _userManager.GetUserId(User);
+        if (user.Id == currentUserId)
+        {
+            TempData["ErrorMessage"] = "You cannot reset your own MFA from User Management.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        try
+        {
+            _logger.LogInformation("Administrator {AdminId} requested MFA reset for user {UserId}", currentUserId, user.Id);
+
+            var disableResult = await _userManager.SetTwoFactorEnabledAsync(user, false);
+            if (!disableResult.Succeeded)
+            {
+                _logger.LogWarning("Failed to disable 2FA for user {UserId}: {Errors}", user.Id, string.Join(';', disableResult.Errors.Select(e => e.Description)));
+                TempData["ErrorMessage"] = "Failed to disable MFA for the selected user.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            await _userManager.ResetAuthenticatorKeyAsync(user);
+            await _userManager.UpdateSecurityStampAsync(user);
+
+            _logger.LogInformation("MFA reset completed for user {UserId} by admin {AdminId}", user.Id, currentUserId);
+            TempData["SuccessMessage"] = $"MFA has been reset for {user.Email}.";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while resetting MFA for user {UserId}", user.Id);
+            TempData["ErrorMessage"] = "An unexpected error occurred while resetting MFA.";
+        }
 
         return RedirectToAction(nameof(Index));
     }

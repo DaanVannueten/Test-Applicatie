@@ -6,7 +6,6 @@ using System.Globalization;
 using System.Diagnostics;
 using TestPlanManager.Data;
 using TestPlanManager.Models;
-
 /// <summary>
 /// ============================================================
 /// APPLICATION STARTUP AND CONFIGURATION
@@ -385,8 +384,6 @@ app.Use(async (context, next) =>
         var isAllowedPath =
             path.StartsWithSegments("/Account/EnableAuthenticator", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWithSegments("/Account/DisableAuthenticator", StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWithSegments("/Account/RegenerateRecoveryCodes", StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWithSegments("/Account/ShowRecoveryCodes", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWithSegments("/Account/Manage", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWithSegments("/Account/Logout", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWithSegments("/Account/AccessDenied", StringComparison.OrdinalIgnoreCase) ||

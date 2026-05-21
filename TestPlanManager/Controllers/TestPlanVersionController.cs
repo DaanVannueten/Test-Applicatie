@@ -205,8 +205,30 @@ namespace TestPlanManager.Controllers
 
             if (!ModelState.IsValid)
             {
-                TempData["ErrorMessage"] = "Enter a valid template name and source cycle.";
-                return RedirectToAction(nameof(Index));
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).Where(m => !string.IsNullOrWhiteSpace(m)).ToList();
+                var errorMessage = errors.Any() ? string.Join(" ", errors) : "Enter a valid template name and source cycle.";
+
+                if (ModelState.ContainsKey("BuildNr") && ModelState["BuildNr"].Errors.Any(e => e.ErrorMessage.Contains("spaces") || e.ErrorMessage.Contains("only contain")))
+                {
+                    errorMessage += " Use only letters, numbers, periods (.), underscores (_), or hyphens (-); remove spaces.";
+                }
+
+                // Return the Index view directly with ViewData so the modal can remain open and the user can correct the input.
+                ViewData["ShowMakeTemplateModal"] = true;
+                ViewData["ErrorMessage"] = errorMessage;
+                ViewData["CreateTemplateName"] = input.BuildNr ?? string.Empty;
+                ViewData["CreateTemplateSourceCycleId"] = input.SourceCycleSprintId?.ToString() ?? string.Empty;
+
+                var defaultSprintId = _defaultVersionStore.GetDefaultSprintId();
+                var versions = await BuildVersionQuery(showArchived: false).ToListAsync();
+                var vm = new TestPlanVersionPageViewModel
+                {
+                    Versions = versions,
+                    DefaultSprintId = defaultSprintId,
+                    ShowArchived = false
+                };
+
+                return View("Index", vm);
             }
 
             input.BuildNr = input.BuildNr.Trim();
@@ -214,8 +236,21 @@ namespace TestPlanManager.Controllers
             var buildNrExists = await _ctx.Sprints.AnyAsync(s => s.BuildNr.ToLower() == input.BuildNr.ToLower());
             if (buildNrExists)
             {
-                TempData["ErrorMessage"] = $"Build {input.BuildNr} already exists.";
-                return RedirectToAction(nameof(Index));
+                ViewData["ShowMakeTemplateModal"] = true;
+                ViewData["ErrorMessage"] = $"Build {input.BuildNr} already exists.";
+                ViewData["CreateTemplateName"] = input.BuildNr ?? string.Empty;
+                ViewData["CreateTemplateSourceCycleId"] = input.SourceCycleSprintId?.ToString() ?? string.Empty;
+
+                var defaultSprintId = _defaultVersionStore.GetDefaultSprintId();
+                var versions = await BuildVersionQuery(showArchived: false).ToListAsync();
+                var vm = new TestPlanVersionPageViewModel
+                {
+                    Versions = versions,
+                    DefaultSprintId = defaultSprintId,
+                    ShowArchived = false
+                };
+
+                return View("Index", vm);
             }
 
             var sourceCycle = await _ctx.Sprints
@@ -225,8 +260,22 @@ namespace TestPlanManager.Controllers
 
             if (sourceCycle == null || sourceCycle.IsTemplate)
             {
-                TempData["ErrorMessage"] = "Select a valid source cycle (non-template).";
-                return RedirectToAction(nameof(Index));
+                ViewData["ShowMakeTemplateModal"] = true;
+                ViewData["ErrorMessage"] = "Select a valid source cycle (non-template).";
+                ViewData["CreateTemplateName"] = input.BuildNr ?? string.Empty;
+                ViewData["CreateTemplateSourceCycleId"] = input.SourceCycleSprintId?.ToString() ?? string.Empty;
+                ViewData["CreateTemplateSourceCycleName"] = sourceCycle?.BuildNr ?? string.Empty;
+
+                var defaultSprintId = _defaultVersionStore.GetDefaultSprintId();
+                var versions = await BuildVersionQuery(showArchived: false).ToListAsync();
+                var vm = new TestPlanVersionPageViewModel
+                {
+                    Versions = versions,
+                    DefaultSprintId = defaultSprintId,
+                    ShowArchived = false
+                };
+
+                return View("Index", vm);
             }
 
             var newTemplate = new Sprint
