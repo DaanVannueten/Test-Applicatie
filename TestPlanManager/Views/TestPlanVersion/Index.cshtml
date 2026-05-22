@@ -168,7 +168,7 @@ else
                                 }
                                 @if (canManageVersions)
                                 {
-                                    <form method="post" asp-action="Delete" asp-controller="TestPlanVersion" onsubmit="return confirm('This version and all underlying tests will be deleted. Continue?');">
+                                    <form method="post" asp-action="Delete" asp-controller="TestPlanVersion" data-confirm-message="Ben je zeker dat je dit wilt verwijderen? Deze versie en alle onderliggende tests worden verwijderd.">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="sprintId" value="@template.SprintId" />
                                         <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
@@ -197,13 +197,23 @@ else
                                         <tbody>
                                             @foreach (var cycle in groupedCycles)
                                             {
-                                                <tr onclick="window.location='@Url.Action("Index", "Home", new { sprintId = cycle.SprintId })'" style="cursor: pointer;">
-                                                    <td>@cycle.BuildNr</td>
-                                                    <td>@cycle.CategoryCount</td>
-                                                    <td>@cycle.TestCount</td>
-                                                    <td>@(cycle.LastExecutionDate.HasValue ? cycle.LastExecutionDate.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm") : "-")</td>
-                                                    <td>@(string.IsNullOrWhiteSpace(cycle.LastWorkedBy) ? "-" : cycle.LastWorkedBy)</td>
-                                                    <td onclick="event.stopPropagation();">
+                                                <tr data-href="@Url.Action("Index", "Home", new { sprintId = cycle.SprintId })" style="cursor: pointer;">
+                                                    <td class="position-relative">
+                                                        <a href="@Url.Action("Index", "Home", new { sprintId = cycle.SprintId })" class="stretched-link text-decoration-none">@cycle.BuildNr</a>
+                                                    </td>
+                                                    <td>
+                                                        <a href="@Url.Action("Index", "Home", new { sprintId = cycle.SprintId })" class="d-block text-decoration-none">@cycle.CategoryCount</a>
+                                                    </td>
+                                                    <td>
+                                                        <a href="@Url.Action("Index", "Home", new { sprintId = cycle.SprintId })" class="d-block text-decoration-none">@cycle.TestCount</a>
+                                                    </td>
+                                                    <td>
+                                                        <a href="@Url.Action("Index", "Home", new { sprintId = cycle.SprintId })" class="d-block text-decoration-none">@(cycle.LastExecutionDate.HasValue ? cycle.LastExecutionDate.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm") : "-")</a>
+                                                    </td>
+                                                    <td>
+                                                        <a href="@Url.Action("Index", "Home", new { sprintId = cycle.SprintId })" class="d-block text-decoration-none">@(string.IsNullOrWhiteSpace(cycle.LastWorkedBy) ? "-" : cycle.LastWorkedBy)</a>
+                                                    </td>
+                                                    <td data-stop-propagation="true">
                                                         <div class="dropdown floating-dropdown">
                                                             <button class="btn btn-sm btn-outline-secondary floating-menu-toggle" type="button" aria-expanded="false" aria-haspopup="true" title="More actions">
                                                                 <i class="bi bi-three-dots-vertical"></i>
@@ -216,12 +226,11 @@ else
                                                                 {
                                                                     <li>
                                                                         <button type="button"
-                                                                                class="dropdown-item"
+                                                                                class="dropdown-item js-prepare-make-template"
                                                                                 data-bs-toggle="modal"
                                                                                 data-bs-target="#makeTemplateModal"
                                                                                 data-source-cycle-id="@cycle.SprintId"
-                                                                                data-source-cycle-name="@cycle.BuildNr"
-                                                                                onclick="prepareMakeTemplateModal(this)">
+                                                                                data-source-cycle-name="@cycle.BuildNr">
                                                                             Make template
                                                                         </button>
                                                                     </li>
@@ -229,7 +238,7 @@ else
                                                                 @if (canArchiveCycles && !Model.ShowArchived)
                                                                 {
                                                                     <li>
-                                                                        <form method="post" asp-action="Archive" asp-controller="TestPlanVersion" onsubmit="return confirm('Archive this build? It will be hidden from the active versions list.');">
+                                                                        <form method="post" asp-action="Archive" asp-controller="TestPlanVersion" data-confirm-message="Ben je zeker dat je dit wilt archiveren? Deze versie wordt verborgen uit de actieve lijst.">
                                                                             @Html.AntiForgeryToken()
                                                                             <input type="hidden" name="sprintId" value="@cycle.SprintId" />
                                                                             <button type="submit" class="dropdown-item">Archive</button>
@@ -250,7 +259,7 @@ else
                                                                 {
                                                                     <li><hr class="dropdown-divider" /></li>
                                                                     <li>
-                                                                        <form method="post" asp-action="Delete" asp-controller="TestPlanVersion" onsubmit="return confirm('This version and all underlying tests will be deleted. Continue?');">
+                                                                        <form method="post" asp-action="Delete" asp-controller="TestPlanVersion" data-confirm-message="Ben je zeker dat je dit wilt verwijderen? Deze versie en alle onderliggende tests worden verwijderd.">
                                                                             @Html.AntiForgeryToken()
                                                                             <input type="hidden" name="sprintId" value="@cycle.SprintId" />
                                                                             <button type="submit" class="dropdown-item text-danger">Delete</button>
@@ -302,13 +311,23 @@ else
                                 <tbody>
                                     @foreach (var cycle in ungroupedCycles.OrderByDescending(v => v.SprintId))
                                     {
-                                        <tr onclick="window.location='@Url.Action("Index", "Home", new { sprintId = cycle.SprintId })'" style="cursor: pointer;">
-                                            <td>@cycle.BuildNr</td>
-                                            <td>@cycle.CategoryCount</td>
-                                            <td>@cycle.TestCount</td>
-                                            <td>@(cycle.LastExecutionDate.HasValue ? cycle.LastExecutionDate.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm") : "-")</td>
-                                            <td>@(string.IsNullOrWhiteSpace(cycle.LastWorkedBy) ? "-" : cycle.LastWorkedBy)</td>
-                                            <td onclick="event.stopPropagation();">
+                                        <tr data-href="@Url.Action("Index", "Home", new { sprintId = cycle.SprintId })" style="cursor: pointer;">
+                                            <td class="position-relative">
+                                                <a href="@Url.Action("Index", "Home", new { sprintId = cycle.SprintId })" class="stretched-link text-decoration-none">@cycle.BuildNr</a>
+                                            </td>
+                                            <td>
+                                                <a href="@Url.Action("Index", "Home", new { sprintId = cycle.SprintId })" class="d-block text-decoration-none">@cycle.CategoryCount</a>
+                                            </td>
+                                            <td>
+                                                <a href="@Url.Action("Index", "Home", new { sprintId = cycle.SprintId })" class="d-block text-decoration-none">@cycle.TestCount</a>
+                                            </td>
+                                            <td>
+                                                <a href="@Url.Action("Index", "Home", new { sprintId = cycle.SprintId })" class="d-block text-decoration-none">@(cycle.LastExecutionDate.HasValue ? cycle.LastExecutionDate.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm") : "-")</a>
+                                            </td>
+                                            <td>
+                                                <a href="@Url.Action("Index", "Home", new { sprintId = cycle.SprintId })" class="d-block text-decoration-none">@(string.IsNullOrWhiteSpace(cycle.LastWorkedBy) ? "-" : cycle.LastWorkedBy)</a>
+                                            </td>
+                                            <td data-stop-propagation="true">
                                                 <div class="dropdown floating-dropdown">
                                                     <button class="btn btn-sm btn-outline-secondary floating-menu-toggle" type="button" aria-expanded="false" aria-haspopup="true" title="More actions">
                                                         <i class="bi bi-three-dots-vertical"></i>
@@ -321,12 +340,11 @@ else
                                                         {
                                                             <li>
                                                                 <button type="button"
-                                                                        class="dropdown-item"
+                                                                        class="dropdown-item js-prepare-make-template"
                                                                         data-bs-toggle="modal"
                                                                         data-bs-target="#makeTemplateModal"
                                                                         data-source-cycle-id="@cycle.SprintId"
-                                                                        data-source-cycle-name="@cycle.BuildNr"
-                                                                        onclick="prepareMakeTemplateModal(this)">
+                                                                        data-source-cycle-name="@cycle.BuildNr">
                                                                     Make template
                                                                 </button>
                                                             </li>
@@ -334,7 +352,7 @@ else
                                                         @if (canArchiveCycles && !Model.ShowArchived)
                                                         {
                                                             <li>
-                                                                <form method="post" asp-action="Archive" asp-controller="TestPlanVersion" onsubmit="return confirm('Archive this build? It will be hidden from the active versions list.');">
+                                                                <form method="post" asp-action="Archive" asp-controller="TestPlanVersion" data-confirm-message="Ben je zeker dat je dit wilt archiveren? Deze versie wordt verborgen uit de actieve lijst.">
                                                                     @Html.AntiForgeryToken()
                                                                     <input type="hidden" name="sprintId" value="@cycle.SprintId" />
                                                                     <button type="submit" class="dropdown-item">Archive</button>
@@ -355,7 +373,7 @@ else
                                                         {
                                                             <li><hr class="dropdown-divider" /></li>
                                                             <li>
-                                                                <form method="post" asp-action="Delete" asp-controller="TestPlanVersion" onsubmit="return confirm('This version and all underlying tests will be deleted. Continue?');">
+                                                                <form method="post" asp-action="Delete" asp-controller="TestPlanVersion" data-confirm-message="Ben je zeker dat je dit wilt verwijderen? Deze versie en alle onderliggende tests worden verwijderd.">
                                                                     @Html.AntiForgeryToken()
                                                                     <input type="hidden" name="sprintId" value="@cycle.SprintId" />
                                                                     <button type="submit" class="dropdown-item text-danger">Delete</button>

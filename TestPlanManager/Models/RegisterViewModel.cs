@@ -13,7 +13,7 @@ public class RegisterViewModel
     [DataType(DataType.Password)]
     [MinLength(8, ErrorMessage = "Password must be at least 8 characters long")]
     [StringLength(128, ErrorMessage = "Password cannot exceed 128 characters")]
-    [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&_\-+=])", 
+    [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).+$", 
         ErrorMessage = "Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character")]
     public string Password { get; set; } = string.Empty;
 

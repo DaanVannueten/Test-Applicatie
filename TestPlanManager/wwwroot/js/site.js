@@ -141,3 +141,71 @@
 	window.addEventListener("resize", onScrollOrResize);
 	window.addEventListener("scroll", onScrollOrResize, true);
 })();
+
+	// Global delete/confirm handler: listens for form submissions and prompts when forms
+	// are marked with `data-confirm-message` or when the submitter looks like a delete action.
+	document.addEventListener('submit', function (event) {
+		var form = event.target;
+		if (!(form instanceof HTMLFormElement)) {
+			return;
+		}
+
+		var submitter = event.submitter;
+		var confirmMessage = form.dataset.confirmMessage || form.dataset.deleteConfirmMessage;
+		var looksLikeDelete = false;
+
+		if (submitter) {
+			var submitText = ((submitter.textContent || '') + ' ' + (submitter.title || '') + ' ' + (submitter.getAttribute('aria-label') || '')).toLowerCase();
+			looksLikeDelete = submitText.includes('delete') || submitText.includes('remove') || submitText.includes('verwijder') || submitText.includes('verwijderen') || submitText.includes('trash');
+		}
+
+		if (!confirmMessage && !looksLikeDelete) {
+			return;
+		}
+
+		if (!confirmMessage) {
+			confirmMessage = 'Ben je zeker dat je dit wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.';
+		}
+
+		if (!window.confirm(confirmMessage)) {
+			event.preventDefault();
+		}
+	});
+
+	// Delegated handlers for data-href navigation and custom actions (avoids inline onclick)
+	document.addEventListener('click', function (event) {
+		var el = event.target;
+		// Walk up to find an element with data-stop-propagation
+		var stop = el.closest && el.closest('[data-stop-propagation]');
+		if (stop) {
+			// If the clicked element is inside an area that stops propagation for row clicks,
+			// allow the click to proceed normally (e.g., opening dropdowns) and don't trigger navigation.
+			return;
+		}
+
+		// Handle prepare-make-template buttons
+		var prep = el.closest && el.closest('.js-prepare-make-template');
+		if (prep) {
+			// Call the function defined in page-scoped inline script (it has a nonce so it runs)
+			try {
+				if (typeof window.prepareMakeTemplateModal === 'function') {
+					window.prepareMakeTemplateModal(prep);
+				}
+			} catch (e) { }
+			return;
+		}
+
+		// Find nearest ancestor row with data-href
+		var row = el.closest && el.closest('[data-href]');
+		if (row) {
+			// Ignore clicks on interactive controls inside the row
+			var tag = el.tagName && el.tagName.toLowerCase();
+			if (tag === 'a' || tag === 'button' || tag === 'input' || el.closest && el.closest('a,button,input')) {
+				return;
+			}
+			var href = row.getAttribute('data-href');
+			if (href) {
+				window.location = href;
+			}
+		}
+	});

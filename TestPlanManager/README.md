@@ -8,6 +8,13 @@ De applicatie laat je:
 - testcases beheren per categorie;
 - teststatussen updaten en dashboard-metrics in real time bekijken.
 
+What's New (recent)
+- Consistente en duidelijkere validatie voor "build" / template / cycle namen: invoer accepteert alleen letters, cijfers, punten (.), underscores (_) en hyphens (-). Spaties en andere karakters worden geblokkeerd en tonen een begrijpelijke foutmelding.
+- Client-side HTML5 pattern + title toegevoegd op relevante invoervelden zodat gebruikers direct een hint krijgen bij ongeldige invoer.
+- Server-side validatie meldt nu concrete foutteksten terug (ModelState-meldingen) in plaats van alleen een generieke foutboodschap; modals blijven open zodat de gebruiker kan corrigeren zonder gegevens te verliezen.
+- Template -> Create Cycle flow: formulier en controller (`TemplateController.CreateCycle`) trimmen invoer en tonen valide foutmeldingen wanneer nodig.
+- TestPlanVersion modal voor "Create template from cycle" toont serverfouten in de modal en behoudt eerder ingevoerde waarden.
+
 ## Inhoud
 
 1. Projectoverzicht
@@ -117,119 +124,36 @@ Bestand: `Models/TestCategory.cs`
 Bestand: `Models/Test.cs`
 - `TestId` (PK)
 - `TestCategoryId` (FK)
-- `Name`, `Description`
-- `ScopeStatus` (`InScope`/`OutOfScope`)
-- `ExecutionStatus` (`NotRun`/`Passed`/`Failed`/`Blocked`)
-- `Production`, `Comments`, `MediaUrl`
-- `ExecutedAt` (UTC timestamp bij uitvoering)
-- `LastExecutedBy` (laatste gebruiker die de test uitvoerde)
+# TestPlanManager
 
-### Enum mapping
+TestPlanManager is een ASP.NET Core MVC webapplicatie om testplannen en testuitvoeringen per versie/build (sprint) te beheren. De applicatie is gericht op snelle lokale opzet, eenvoudige rollen/autoriteit en herbruikbare test-templates.
 
-In `Data/TestPlanContext.cs` worden enums als strings opgeslagen voor leesbaarheid in de database.
+Doelgroep: testmanagers, testers en ontwikkelaars die testcases en testcycli per release willen organiseren en rapporteren.
 
-### Relaties en delete gedrag
+Belangrijkste functionaliteit
+- Versies (builds) aanmaken, kopiëren (van templates) en archiveren
+- Templates maken van bestaande cycles en templates gebruiken om nieuwe testcycli te starten
+- Testcategorieën en testcases beheren (CRUD)
+- Testuitvoering bijhouden: status (NotRun / Passed / Failed / Blocked), uitvoerder en timestamp
+- Dashboard en KPI's per versie: totaal tests, uitgevoerd, pass%, failed, blocked
+- Rollen: Administrator, TestManager, Tester met verschillende rechten in de UI
+- Eenvoudige REST API endpoints voor integratie of automatisering
 
-In `Data/TestPlanContext.cs`:
-- Sprint -> TestCategory: cascade delete
-- TestCategory -> Test: cascade delete
+What's New / Recent wijzigingen
+- Consistente validatie voor build / template / cycle namen: alleen A–Z, a–z, 0–9, `.`, `_`, `-` zijn toegestaan; spaties en speciale tekens zijn niet toegestaan.
+- Client-side HTML5 pattern + title toegevoegd op de relevante invoervelden zodat gebruikers direct feedback krijgen.
+- Server-side validatie retourneert nu concrete ModelState-meldingen zodat de UI duidelijke foutteksten toont (bijv. in modals).
 
-## 6. Functionele flow
+Quick start (lokaal)
+1. Zorg dat `.NET SDK` (compatibel met `net10.0`) geïnstalleerd is.
+2. Clone de repo en navigeer naar projectmap:
 
-### Dashboard
+```bash
+git clone <repo-url>
+cd TestPlanManager
+```
 
-Controller: `Controllers/HomeController.cs`, view: `Views/Home/Index.cshtml`
-
-- Laadt versies met categorieen en tests.
-- Kiest actieve versie op basis van:
-  1. `sprintId` query parameter,
-  2. opgeslagen default versie,
-  3. anders nieuwste/eerste versie.
-- Berekent metrics:
-  - totaal aantal tests,
-  - aantal uitgevoerde tests,
-  - completed categories (`afgerond / totaal`),
-  - open/failed teller,
-  - quality percentages (Passed/Failed/Blocked/OOS).
-- Ondersteunt globale reset: alle tests naar `NotRun` voor gekozen versie.
-- Toont klikbare breadcrumbs voor snellere terugnavigatie tussen niveaus.
-
-### Versiebeheer
-
-Controller: `Controllers/TestPlanVersionController.cs`, view: `Views/TestPlanVersion/Index.cshtml`
-
-Mogelijkheden:
-- lege versie aanmaken (`Create`)
-- versie kopieren (`Copy`) van bestaande sprint
-- default versie zetten (`SetDefault`)
-- versie verwijderen (`Delete`)
-- ungrouped cycles als inklapbare sectie tonen
-- archived builds openen via aparte lijst (`Archived`)
-
-Default versie wordt bewaard in `App_Data/default-version.json`.
-
-### Categoriebeheer (MVC)
-
-Controller: `Controllers/TestCategoryMvcController.cs`
-
-Mogelijkheden:
-- categorie details (`Details`)
-- categorie aanmaken (`CreateCategory` GET/POST)
-- categorie wijzigen (`EditCategory` GET/POST)
-- categorie verwijderen (`DeleteCategory`)
-- breadcrumbs tonen op create/edit/detail voor stap-voor-stap navigatie
-
-### Testbeheer (MVC)
-
-Ook in `TestCategoryMvcController`:
-- test aanmaken (`CreateTest` GET/POST)
-- test wijzigen (`EditTest` GET/POST)
-- test verwijderen (`DeleteTest`)
-- breadcrumbs tonen op create/edit voor snelle terugnavigatie
-
-Bij statuswijzigingen:
-- `ExecutedAt` wordt gezet/gereset;
-- `TestDate` van de categorie wordt opnieuw afgeleid uit de laatste uitgevoerde test.
-
-## 7. Belangrijkste routes en endpoints
-
-### MVC routes
-
-- `GET /Home/Index?sprintId={id}`: dashboard
-- `GET /Home/Index?sprintId={id}&includeTemplates=true`: template-dashboard view
-- `GET /TestPlanVersion/Index`: versiebeheer
-- `GET /TestPlanVersion/Archived`: archived builds overzicht
-- `GET /test-categories/{id}`: categorie detail
-- `GET /test-categories/{id}/edit`: test bewerken
-- `GET /test-categories/{testCategoryId}/tests/new`: nieuwe test
-
-### API endpoints
-
-`SprintController` (`/api/sprint`):
-- `GET /api/sprint`
-- `GET /api/sprint/{id}`
-- `POST /api/sprint`
-- `PUT /api/sprint/{id}`
-- `DELETE /api/sprint/{id}`
-
-`TestCategoryController` (`/api/testcategory`):
-- `GET /api/testcategory/{id}`
-- `GET /api/testcategory/sprint/{sprintId}/summary`
-- `POST /api/testcategory`
-
-`TestController` (`/api/test`):
-- `GET /api/test/{id}`
-- `POST /api/test`
-- `PUT /api/test/{id}/status`
-
-## 8. Installatie en lokaal draaien
-
-### Vereisten
-
-- .NET SDK geschikt voor `net10.0`
-- Windows/macOS/Linux met `dotnet` CLI
-
-### Starten
+3. Restore, build en run:
 
 ```bash
 dotnet restore
@@ -237,60 +161,51 @@ dotnet build
 dotnet run
 ```
 
-Standaard development URLs staan in `Properties/launchSettings.json`:
-- `http://localhost:5007`
-- `https://localhost:5008`
+4. Open de browser op `http://localhost:5007` of `https://localhost:5008` (zie `Properties/launchSettings.json`).
 
-## 9. Database en migraties
+Configuratie
+- Connection string staat in `appsettings.json` als `ConnectionStrings:DefaultConnection`. Standaard wijst deze naar `App_Data/TestPlan.db`.
+- Seed admin credentials (optioneel, development): gebruik `dotnet user-secrets` of environment variables met keys `SeedAdmin:Email` en `SeedAdmin:Password`.
+- Omgevingsvariabelen ondersteund van `Program.cs`: `APP_URL`, `PORT`.
 
-### Huidige database
+Databases en migraties
+- SQLite-bestand: `App_Data/TestPlan.db` (lokale data; niet committen).
+- EF Core migraties staan in de map `Migrations/`.
+- Gebruik `dotnet ef migrations add <Name>` en `dotnet ef database update` voor schemawijzigingen.
 
-- SQLite bestand: lokaal gegenereerd `App_Data/TestPlan.db` (niet committen)
-- EF migraties: map `Migrations/`
+Validatie en UI gedrag
+- Validatieregels voor build/template namen zijn gedefinieerd in viewmodels (`Models/TestPlanVersionViewModels.cs` en `Models/TemplateViewModels.cs`) met een `RegularExpression` attribuut en duidelijke fouttekst.
+- Views gebruiken HTML5 `pattern` en `title` attributes in de invoervelden (`Views/TestPlanVersion/Index.cshtml`, `Views/Template/Details.cshtml`) om snelle client-side hints te geven.
+- POST-acties (bijv. `TestPlanVersionController`, `TemplateController`) trimmen invoer en retourneren specifieke ModelState-fouten zodat modals kunnen blijven openstaan en gebruikers hun invoer kunnen corrigeren.
 
-### Handige EF commando's
+Development workflow
+- Build: `dotnet build`
+- Run: `dotnet run`
+- Tests: `dotnet test TestPlanManager.sln` of `dotnet test TestPlanManager.Tests/TestPlanManager.Tests.csproj`
 
-```bash
-# nieuwe migratie maken
-dotnet ef migrations add <NaamMigratie>
+Developer notes
+- Belangrijke locaties:
+  - `Program.cs` — app startup en DI
+  - `Controllers/` — MVC en API controllers
+  - `Models/` — domeinmodellen, enums, viewmodels
+  - `Data/TestPlanContext.cs` — EF Core mapping, cascade rules
+  - `Views/` — Razor pages en client scripts
+- Hou validatieboodschappen consistent: verander zowel de `RegularExpression` ErrorMessage als de `title` in de view bij updates.
 
-# migraties toepassen op database
-dotnet ef database update
-```
+Contributie en style
+- Fork & PR workflow. Run unit tests lokaal voordat je een PR opent.
+- Code stijl volgt standaard C# conventies; gebruik `dotnet-format` of je IDE formatter voor consistente stijl.
 
-## 10. Configuratie
+Contact
+- Voor vragen of hulp met local setup: overleg met het team of open een issue in de repository.
 
-### appsettings
+Licentie
+- (Voeg hier de licentie toe indien van toepassing, of verwijder dit gedeelte.)
 
-Bestand: `appsettings.json`
-- `ConnectionStrings:DefaultConnection = Data Source=App_Data/TestPlan.db`
+----
 
-De applicatie resolve't dit pad expliciet vanaf de project-root, zodat lokaal altijd dezelfde database gebruikt wordt, ook wanneer je de app vanuit een andere werkmap of tool start.
-
-### Development secrets
-
-Gebruik voor lokale seed-credentials `SeedAdmin:Email` en `SeedAdmin:Password` via user-secrets of environment variables in plaats van ze in `appsettings.Development.json` te committen.
-
-```bash
-dotnet user-secrets init
-dotnet user-secrets set "SeedAdmin:Email" "admin@testplan.local"
-dotnet user-secrets set "SeedAdmin:Password" "KiesEenSterkWachtwoord123!"
-```
-
-Als deze waarden niet gezet zijn, worden alleen de rollen geseed en geen default admin-account aangemaakt.
-
-### Omgevingsvariabelen
-
-Ondersteund in `Program.cs`:
-- `APP_URL` (volledige url, heeft voorrang)
-- `PORT` (fallback, luistert op `http://0.0.0.0:{PORT}`)
-
-### Development beheercommando's
-
-De CLI-commando's voor gebruikersbeheer in `Program.cs` zijn alleen beschikbaar in de `Development` environment:
-
-```bash
-dotnet run --no-launch-profile -- --list-users
+Bestanden genoemd in deze README:
+- `Program.cs`, `appsettings.json`, `Models/`, `Controllers/`, `Views/`, `Data/TestPlanContext.cs`, `Migrations/`, `App_Data/`.
 dotnet run --no-launch-profile -- --ensure-user <email> <password> <role>
 dotnet run --no-launch-profile -- --reset-password <email> <newPassword>
 ```
@@ -388,6 +303,13 @@ Na de run vind je per testproject een `coverage.cobertura.xml` onder `TestResult
 - Er staat een `ProductionStatus` enum in `Models/Enums.cs` die momenteel niet actief gebruikt wordt in de logica.
 - De app gebruikt lokale file-opslag (`App_Data/default-version.json`) voor default sprint keuze.
 - `UseHttpsRedirection()` staat enkel aan buiten development, wat lokaal handig is maar in productie expliciet gecontroleerd moet blijven.
+
+Developer notes
+- Validatie voor build/template names staat in:
+  - `Models/TestPlanVersionViewModels.cs` (`CreateVersionInputModel`, `CopyVersionInputModel`, `CreateTemplateFromCycleInputModel`)
+  - `Models/TemplateViewModels.cs` (`CreateCycleFromTemplateInputModel`)
+  - client-side patterns in `Views/TestPlanVersion/Index.cshtml` en `Views/Template/Details.cshtml`.
+- Wanneer je validatieboodschappen aanpast, zorg dat zowel de `RegularExpression`-attribuuttekst als de `title` van het input-veld consistent blijven om verwarring te voorkomen.
 
 ---
 

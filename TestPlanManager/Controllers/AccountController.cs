@@ -371,7 +371,7 @@ public class AccountController : Controller
     [HttpPost]
     [Authorize]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> UpdateEmail(UpdateEmailInputModel model)
+    public async Task<IActionResult> UpdateEmail([Bind(Prefix = "UpdateEmail")] UpdateEmailInputModel model)
     {
         var user = await _userManager.GetUserAsync(User);
         if (user == null)
@@ -446,7 +446,7 @@ public class AccountController : Controller
     [HttpPost]
     [Authorize]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ChangePassword(ChangePasswordInputModel model)
+    public async Task<IActionResult> ChangePassword([Bind(Prefix = "ChangePassword")] ChangePasswordInputModel model)
     {
         var user = await _userManager.GetUserAsync(User);
         if (user == null)

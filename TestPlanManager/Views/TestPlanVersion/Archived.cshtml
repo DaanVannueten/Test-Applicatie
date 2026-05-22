@@ -81,7 +81,7 @@ else
                                 <input type="hidden" name="sprintId" value="@version.SprintId" />
                                 <button type="submit" class="btn btn-sm btn-outline-success">Restore</button>
                             </form>
-                            <form method="post" asp-action="Delete" asp-controller="TestPlanVersion" onsubmit="return confirm('This archived version and all underlying tests will be deleted. Continue?');">
+                            <form method="post" asp-action="Delete" asp-controller="TestPlanVersion" data-confirm-message="Ben je zeker dat je dit wilt verwijderen? Dit archief en alle onderliggende tests worden verwijderd.">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="sprintId" value="@version.SprintId" />
                                 <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>

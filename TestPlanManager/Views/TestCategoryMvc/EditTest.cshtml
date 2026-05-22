@@ -148,7 +148,7 @@
 
             @if (canManageTests)
             {
-                <form method="post" action="@Url.Action("DeleteTest", "TestCategoryMvc")" onsubmit="return confirm('Are you sure you want to delete this test? This cannot be undone.');" class="mt-4">
+                <form method="post" action="@Url.Action("DeleteTest", "TestCategoryMvc")" data-confirm-message="Ben je zeker dat je dit wilt verwijderen? Deze test kan niet ongedaan worden gemaakt." class="mt-4">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="testId" value="@Model.TestId" />
                     <input type="hidden" name="testCategoryId" value="@Model.TestCategoryId" />
