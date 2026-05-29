@@ -149,9 +149,10 @@
         }
         @if (canManageCycleActions)
         {
-            <form method="post" asp-action="ResetAllTests" asp-controller="Home" onsubmit="return confirm('Reset all tests to Not Run? This cannot be undone.');">
+            <form id="resetAllForm" method="post" asp-action="ResetAllTests" asp-controller="Home">
+                @Html.AntiForgeryToken()
                 <input type="hidden" name="sprintId" value="@Model.SelectedSprintId" />
-                <button type="submit" class="btn btn-sm btn-warning">
+                <button id="resetAllBtn" type="button" class="btn btn-sm btn-warning">
                     <i class="bi bi-arrow-counterclockwise me-1"></i>Reset All Tests
                 </button>
             </form>
@@ -173,16 +174,7 @@
                     <option value="Ops">Ops</option>
                 </select>
             </div>
-            <div class="col-md-4">
-                <label for="releaseFilter" class="form-label small">Release</label>
-                <select id="releaseFilter" class="form-select form-select-sm">
-                    <option value="">All Releases</option>
-                    @foreach(var cat in Model.Categories.GroupBy(c => c.BuildNr))
-                    {
-                        <option value="@cat.Key">Release @cat.Key</option>
-                    }
-                </select>
-            </div>
+            <!-- Release filter removed per request -->
             <div class="col-md-4">
                 <label for="progressFilter" class="form-label small">Min Progress (%)</label>
                 <input type="number" id="progressFilter" class="form-control form-control-sm" min="0" max="100" placeholder="0">
@@ -197,12 +189,31 @@
         </div>
     </div>
 </div>
+<!-- Reset confirmation modal -->
+<div class="modal fade" id="resetAllModal" tabindex="-1" aria-labelledby="resetAllModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="resetAllModalLabel">Confirm reset</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to reset all tests? This action will reset this version and all underlying tests to Not Run and cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button id="resetAllConfirmBtn" type="button" class="btn btn-danger">Yes, reset</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="table-responsive">
     <table class="table dashboard-table">
         <thead>
             <tr>
                 <th>Feature Name</th>
-                <th>Version / Release</th>
+                <!-- Version / Release column removed -->
                 <th>Owner</th>
                 <th>Progress</th>
                 <th>Test Results</th>
@@ -223,18 +234,11 @@
         {
             @foreach(var cat in Model.Categories)
             {
-                <tr class="status-row" data-status="@cat.Status" 
-                    data-department="@cat.Department" 
-                    data-release="@cat.BuildNr"
-                    data-progress="@cat.PercentagePassed">
+                    <tr class="status-row" data-status="@cat.Status" data-department="@cat.Department" data-progress="@cat.PercentagePassed">
                     <td>
                         <div class="feature-title">@cat.Name</div>
-                        @if (!string.IsNullOrWhiteSpace(cat.Description))
-                        {
-                            <div class="feature-subtitle">@cat.Description</div>
-                        }
                     </td>
-                    <td class="release-cell">Release @cat.BuildNr</td>
+                    <!-- Release cell removed -->
                     <td class="owner-cell">
                         <span class="owner-label owner-@cat.Department.ToString().ToLowerInvariant()">@cat.Department Team</span>
                     </td>
@@ -244,7 +248,6 @@
                                 <div class="progress-bar" role="progressbar"
                                      style="width: @cat.PercentagePassed%;"
                                      aria-valuenow="@cat.PercentagePassed" aria-valuemin="0" aria-valuemax="100">
-                                    <span class="progress-bar-text">@cat.PercentagePassed.ToString("0.##")%</span>
                                 </div>
                             </div>
                             <span class="small text-muted fw-semibold">@cat.PercentagePassed.ToString("0.##")%</span>
@@ -271,63 +274,83 @@
     </table>
 </div>
 
-<script nonce="@(Context.Items["CspNonce"])">
-const moreFiltersBtn = document.getElementById('moreFiltersBtn');
-const advancedFiltersPanel = document.getElementById('advancedFiltersPanel');
-const statusFilter = document.getElementById('statusFilter');
-const departmentFilter = document.getElementById('departmentFilter');
-const releaseFilter = document.getElementById('releaseFilter');
-const progressFilter = document.getElementById('progressFilter');
-const resetFiltersBtn = document.getElementById('resetFiltersBtn');
-const rows = document.querySelectorAll('.status-row');
+@section Scripts {
+    <script nonce="@(Context.Items["CspNonce"])">
+    const moreFiltersBtn = document.getElementById('moreFiltersBtn');
+    const advancedFiltersPanel = document.getElementById('advancedFiltersPanel');
+    const statusFilter = document.getElementById('statusFilter');
+    const departmentFilter = document.getElementById('departmentFilter');
+        // releaseFilter removed
+    const progressFilter = document.getElementById('progressFilter');
+    const resetFiltersBtn = document.getElementById('resetFiltersBtn');
+    const rows = document.querySelectorAll('.status-row');
 
-// Toggle advanced filters panel
-moreFiltersBtn.addEventListener('click', function() {
-    advancedFiltersPanel.style.display = advancedFiltersPanel.style.display === 'none' ? 'block' : 'none';
-});
-
-// Apply all filters
-function applyFilters() {
-    const selectedStatus = statusFilter.value;
-    const selectedDepartment = departmentFilter.value;
-    const selectedRelease = releaseFilter.value;
-    const minProgress = parseInt(progressFilter.value) || 0;
-    
-    rows.forEach(row => {
-        const rowStatus = row.dataset.status;
-        const rowDepartment = row.dataset.department;
-        const rowRelease = row.dataset.release;
-        const rowProgress = parseFloat(row.dataset.progress);
-        
-        const statusMatch = selectedStatus === '' || rowStatus === selectedStatus;
-        const departmentMatch = selectedDepartment === '' || rowDepartment === selectedDepartment;
-        const releaseMatch = selectedRelease === '' || rowRelease === selectedRelease;
-        const progressMatch = rowProgress >= minProgress;
-        
-        if (statusMatch && departmentMatch && releaseMatch && progressMatch) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
-        }
+    // Toggle advanced filters panel
+    moreFiltersBtn.addEventListener('click', function() {
+        advancedFiltersPanel.style.display = advancedFiltersPanel.style.display === 'none' ? 'block' : 'none';
     });
+
+    // Apply all filters
+    function applyFilters() {
+        const selectedStatus = statusFilter.value;
+        const selectedDepartment = departmentFilter.value;
+        const minProgress = parseInt(progressFilter.value) || 0;
+
+        rows.forEach(row => {
+            const rowStatus = row.dataset.status;
+            const rowDepartment = row.dataset.department;
+            const rowProgress = parseFloat(row.dataset.progress);
+
+            const statusMatch = selectedStatus === '' || rowStatus === selectedStatus;
+            const departmentMatch = selectedDepartment === '' || rowDepartment === selectedDepartment;
+            const progressMatch = rowProgress >= minProgress;
+
+            if (statusMatch && departmentMatch && progressMatch) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    // Event listeners for filters
+    statusFilter.addEventListener('change', applyFilters);
+    departmentFilter.addEventListener('change', applyFilters);
+    progressFilter.addEventListener('input', applyFilters);
+
+    // Reset filters
+    resetFiltersBtn.addEventListener('click', function() {
+        statusFilter.value = '';
+        departmentFilter.value = '';
+        progressFilter.value = '';
+        applyFilters();
+        advancedFiltersPanel.style.display = 'none';
+    });
+
+    // Reset All Tests modal handling
+    try {
+        var resetAllBtn = document.getElementById('resetAllBtn');
+        var resetAllForm = document.getElementById('resetAllForm');
+        var resetAllModalEl = document.getElementById('resetAllModal');
+        var resetAllConfirmBtn = document.getElementById('resetAllConfirmBtn');
+        if (resetAllBtn && resetAllModalEl && resetAllConfirmBtn && resetAllForm) {
+            var resetModal = bootstrap.Modal.getOrCreateInstance(resetAllModalEl);
+            resetAllBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                resetModal.show();
+            });
+
+            resetAllConfirmBtn.addEventListener('click', function (e) {
+                // submit the form normally so antiforgery token and [ValidateAntiForgeryToken] work
+                resetModal.hide();
+                resetAllForm.submit();
+            });
+        }
+    } catch (err) {
+        console.error('ResetAll modal setup failed', err);
+    }
+    </script>
 }
-
-// Event listeners for filters
-statusFilter.addEventListener('change', applyFilters);
-departmentFilter.addEventListener('change', applyFilters);
-releaseFilter.addEventListener('change', applyFilters);
-progressFilter.addEventListener('input', applyFilters);
-
-// Reset filters
-resetFiltersBtn.addEventListener('click', function() {
-    statusFilter.value = '';
-    departmentFilter.value = '';
-    releaseFilter.value = '';
-    progressFilter.value = '';
-    applyFilters();
-    advancedFiltersPanel.style.display = 'none';
-});
-</script>
 
     <!--
         Dashboard design reference image (replace with your own screenshots if needed):

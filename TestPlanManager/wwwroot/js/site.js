@@ -50,7 +50,7 @@
 			return;
 		}
 
-		// Prioriteit: menu boven de knop zetten zodat de knop / drie puntjes vrij blijft.
+		// Priority: place the menu above the button so the button/ellipsis stays unobscured.
 		let top = triggerRect.top - menuRect.height - 4;
 		let left = triggerRect.right - menuRect.width;
 
@@ -63,12 +63,12 @@
 		}
 
 		if (top < 8) {
-			// geen ruimte boven: fallback onder de knop
+			// no space above: fallback below the button
 			top = triggerRect.bottom + 4;
 		}
 
 		if (top + menuRect.height > viewportHeight - 8) {
-			// nog altijd niet genoeg ruimte, dwing binnen viewport
+			// still not enough space: force within viewport
 			top = Math.max(8, viewportHeight - menuRect.height - 8);
 		}
 
@@ -156,7 +156,7 @@
 
 		if (submitter) {
 			var submitText = ((submitter.textContent || '') + ' ' + (submitter.title || '') + ' ' + (submitter.getAttribute('aria-label') || '')).toLowerCase();
-			looksLikeDelete = submitText.includes('delete') || submitText.includes('remove') || submitText.includes('verwijder') || submitText.includes('verwijderen') || submitText.includes('trash');
+			looksLikeDelete = submitText.includes('delete') || submitText.includes('remove') || submitText.includes('trash');
 		}
 
 		if (!confirmMessage && !looksLikeDelete) {
@@ -164,7 +164,7 @@
 		}
 
 		if (!confirmMessage) {
-			confirmMessage = 'Ben je zeker dat je dit wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.';
+			confirmMessage = 'Are you sure you want to delete this? This action cannot be undone.';
 		}
 
 		if (!window.confirm(confirmMessage)) {

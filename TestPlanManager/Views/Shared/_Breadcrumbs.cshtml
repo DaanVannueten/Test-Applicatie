@@ -8,21 +8,17 @@
 {
     <nav aria-label="Breadcrumb" class="app-breadcrumb mb-4">
         <ol class="app-breadcrumb-list">
-            @for (var index = 0; index < items.Count; index++)
+            @* Only render a single back button using the first breadcrumb item if it has a URL. Do not render other breadcrumb pills. *@
+            @if (items.Count > 0)
             {
-                var item = items[index];
-                var isLast = index == items.Count - 1;
-
-                <li class="app-breadcrumb-item @(item.IsCurrent || isLast ? "is-current" : string.Empty)">
-                    @if (!string.IsNullOrWhiteSpace(item.Url) && !item.IsCurrent && !isLast)
-                    {
-                        <a class="app-breadcrumb-link" href="@item.Url">@item.Label</a>
-                    }
-                    else
-                    {
-                        <span class="app-breadcrumb-current">@item.Label</span>
-                    }
-                </li>
+                var first = items[0];
+                var isBuildLabel = !string.IsNullOrWhiteSpace(first.Label) && first.Label.IndexOf("Build", System.StringComparison.OrdinalIgnoreCase) >= 0;
+                if (!isBuildLabel && !string.IsNullOrWhiteSpace(first.Url))
+                {
+                    <li class="app-breadcrumb-item">
+                        <a href="@first.Url" class="btn back-nav-btn"><i class="bi bi-chevron-left me-1"></i> Back to @first.Label</a>
+                    </li>
+                }
             }
         </ol>
     </nav>

@@ -353,6 +353,21 @@ textarea:focus-visible,
   flex-shrink: 0;
 }
 
+.category-test-link {
+  color: var(--color-text-primary) !important;
+  text-decoration: none;
+}
+
+.category-test-link:hover {
+  color: #000000 !important;
+  text-decoration: underline;
+}
+
+.category-progress-badge {
+  background: var(--color-brand-gold) !important;
+  color: #000000 !important;
+}
+
 .metric-card h5 {
   color: var(--color-text-muted);
   font-size: 0.78rem;
@@ -397,7 +412,7 @@ textarea:focus-visible,
 .table-responsive {
   border-radius: var(--radius-lg);
   overflow-x: auto;
-  overflow-y: visible !important; /* maak dropdown zichtbaar buiten container */
+  overflow-y: visible !important; /* make dropdown visible outside container */
 }
 
 .table-responsive .dropdown,

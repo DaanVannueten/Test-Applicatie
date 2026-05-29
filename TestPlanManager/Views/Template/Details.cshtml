@@ -7,7 +7,6 @@
 
 <div class="d-flex justify-content-between align-items-center mt-3 mb-3">
     <h4 class="mb-0">@Model.Template.Name <small class="text-muted">(@Model.Template.ProductName)</small></h4>
-    <a class="btn btn-sm btn-outline-secondary" asp-action="Index" asp-controller="Template">Back to Templates</a>
 </div>
 
 @if (TempData["SuccessMessage"] is string successMessage)
@@ -28,10 +27,10 @@
                 <form asp-action="CreateCycle" asp-controller="Template" method="post">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="TestTemplateId" value="@Model.Template.TestTemplateId" />
-                    <div class="input-group">
+                    <div class="mb-2">
                         <input class="form-control" name="BuildNr" placeholder="Build number (e.g. 2026.03.12)" required pattern="[A-Za-z0-9._\-]+" title="Use only letters, numbers, periods (.), underscores (_), or hyphens (-). Spaces are not allowed." />
-                        <button class="btn btn-primary" type="submit">Create Cycle</button>
                     </div>
+                        <button class="btn btn-primary w-100" type="submit">Create Cycle</button>
                 </form>
             </div>
         </div>
@@ -73,7 +72,7 @@
                         <div class="mb-2">
                             <input class="form-control" name="Production" placeholder="Production notes / expected environment" />
                         </div>
-                        <button class="btn btn-outline-primary" type="submit">Add Testcase + Apply to Active Cycles</button>
+                        <button class="btn btn-primary" type="submit">Add Testcase + Apply to Active Cycles</button>
                     </form>
                 </div>
             </div>

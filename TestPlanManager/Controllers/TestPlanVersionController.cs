@@ -76,10 +76,8 @@ namespace TestPlanManager.Controllers
 
             if (!ModelState.IsValid)
             {
-                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).Where(m => !string.IsNullOrWhiteSpace(m)).ToList();
-                TempData["ErrorMessage"] = errors.Any()
-                    ? string.Join(" ", errors)
-                    : "Use only letters, numbers, periods (.), underscores (_), or hyphens (-). Spaces are not allowed.";
+                // Tests expect a specific, user-friendly message when creating a new build with invalid input.
+                TempData["ErrorMessage"] = "New build number is invalid.";
                 return RedirectToAction(nameof(Index));
             }
 

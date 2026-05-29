@@ -27,6 +27,77 @@ namespace TestPlanManager.Controllers
             return RedirectToAction("Index", "Home");
         }
 
+        [HttpGet]
+        [Authorize(Roles = AppRoles.Managers)]
+        public async Task<IActionResult> CreateCategory(int sprintId, string? returnUrl = null)
+        {
+            var sprint = await _ctx.Sprints
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.SprintId == sprintId);
+
+            if (sprint == null)
+            {
+                return NotFound();
+            }
+
+            var nextSequence = await _ctx.TestCategories
+                .Where(tc => tc.SprintId == sprintId)
+                .Select(tc => (int?)tc.Sequence)
+                .MaxAsync() ?? 0;
+
+            var model = new CreateCategoryInputModel
+            {
+                SprintId = sprint.SprintId,
+                BuildNr = sprint.BuildNr,
+                Sequence = nextSequence + 1,
+                ReturnUrl = returnUrl
+            };
+
+            return View(model);
+        }
+
+        [HttpPost]
+        [Authorize(Roles = AppRoles.Managers)]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateCategory(CreateCategoryInputModel model)
+        {
+            var sprint = await _ctx.Sprints
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.SprintId == model.SprintId);
+
+            if (sprint == null)
+            {
+                return NotFound();
+            }
+
+            model.BuildNr = sprint.BuildNr;
+
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var category = new TestCategory
+            {
+                SprintId = model.SprintId,
+                Name = model.Name.Trim(),
+                Description = string.IsNullOrWhiteSpace(model.Description) ? null : model.Description.Trim(),
+                Department = model.Department,
+                Sequence = model.Sequence,
+                TestDate = null
+            };
+
+            _ctx.TestCategories.Add(category);
+            await _ctx.SaveChangesAsync();
+
+            if (!string.IsNullOrWhiteSpace(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
+            {
+                return Redirect(model.ReturnUrl);
+            }
+
+            return RedirectToAction("Index", "Home", new { sprintId = model.SprintId });
+        }
+
         public async Task<IActionResult> Details(int id)
         {
             var cat = await _ctx.TestCategories
@@ -55,26 +126,31 @@ namespace TestPlanManager.Controllers
                 .FirstOrDefaultAsync(tc => tc.TestCategoryId == TestCategoryId);
             if (category == null) return NotFound();
 
-            // Preserve existing media unless explicit removal or new upload/URL provided
-            string? finalMediaUrl = test.MediaUrl; // keep current by default
-            if (removeMedia)
-            {
-                // remove existing file if it was stored under uploads
-                if (!string.IsNullOrWhiteSpace(test.MediaUrl) && test.MediaUrl.StartsWith("/uploads/"))
-                {
-                    var physical = Path.Combine(_env.WebRootPath, test.MediaUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
-                    if (System.IO.File.Exists(physical))
-                    {
-                        System.IO.File.Delete(physical);
-                    }
-                }
-                finalMediaUrl = string.Empty;
-            }
+            var isTester = User.IsInRole(AppRoles.Tester);
 
-            // If a new external URL was provided (e.g., pasted into a field), prefer it
-            if (!string.IsNullOrWhiteSpace(MediaUrl))
+            // Preserve existing media unless a (permitted) new upload is provided
+            string? finalMediaUrl = test.MediaUrl; // keep current by default
+
+            if (!isTester)
             {
-                finalMediaUrl = MediaUrl.Trim();
+                // non-testers may remove existing media or provide external URL
+                if (removeMedia)
+                {
+                    if (!string.IsNullOrWhiteSpace(test.MediaUrl) && test.MediaUrl.StartsWith("/uploads/"))
+                    {
+                        var physical = Path.Combine(_env.WebRootPath, test.MediaUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+                        if (System.IO.File.Exists(physical))
+                        {
+                            System.IO.File.Delete(physical);
+                        }
+                    }
+                    finalMediaUrl = string.Empty;
+                }
+
+                if (!string.IsNullOrWhiteSpace(MediaUrl))
+                {
+                    finalMediaUrl = MediaUrl.Trim();
+                }
             }
 
             if (mediaFile != null && mediaFile.Length > 0)
@@ -91,16 +167,33 @@ namespace TestPlanManager.Controllers
                 finalMediaUrl = "/uploads/test-media/" + fileName;
             }
 
-            test.Name = Name;
-            test.ScopeStatus = ScopeStatus;
-            TestExecutionHelper.ApplyExecution(
-                test,
-                ExecutionStatus,
-                Production,
-                Comments,
-                finalMediaUrl,
-                User?.Identity?.Name,
-                DateTime.UtcNow);
+            if (isTester)
+            {
+                // Testers are only allowed to change ExecutionStatus and add media.
+                // Keep name, scope, production and comments unchanged.
+                TestExecutionHelper.ApplyExecution(
+                    test,
+                    ExecutionStatus,
+                    test.Production,
+                    test.Comments,
+                    finalMediaUrl,
+                    User?.Identity?.Name,
+                    DateTime.UtcNow);
+            }
+            else
+            {
+                // Managers/Admins may edit all fields
+                test.Name = Name;
+                test.ScopeStatus = ScopeStatus;
+                TestExecutionHelper.ApplyExecution(
+                    test,
+                    ExecutionStatus,
+                    Production,
+                    Comments,
+                    finalMediaUrl,
+                    User?.Identity?.Name,
+                    DateTime.UtcNow);
+            }
 
             category.TestDate = TestExecutionHelper.GetLatestExecutionDate(category.Tests);
 
@@ -110,6 +203,7 @@ namespace TestPlanManager.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = AppRoles.Managers)]
         public async Task<IActionResult> CreateTest(int testCategoryId)
         {
             var category = await _ctx.TestCategories.FindAsync(testCategoryId);
@@ -120,6 +214,7 @@ namespace TestPlanManager.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = AppRoles.Managers)]
         public async Task<IActionResult> CreateTest(Test model, IFormFile? mediaFile = null)
         {
             if (string.IsNullOrWhiteSpace(model.Name) || string.IsNullOrWhiteSpace(model.Description))
@@ -153,6 +248,8 @@ namespace TestPlanManager.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = AppRoles.Managers)]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteTest(int testId, int testCategoryId)
         {
             var test = await _ctx.Tests.FindAsync(testId);

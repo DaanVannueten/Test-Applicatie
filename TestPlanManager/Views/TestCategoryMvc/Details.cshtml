@@ -6,8 +6,8 @@
 
 <div class="container-fluid px-4 py-5">
     <div class="mb-4">
-        <a href="@Url.Action("Index","Home")" class="btn back-nav-btn">
-            <i class="bi bi-chevron-left me-1"></i> Back to Dashboard
+        <a href="@Url.Action("Index","Home", new { sprintId = Model.SprintId })" class="btn back-nav-btn">
+            <i class="bi bi-chevron-left me-1"></i> Back to Categories
         </a>
     </div>
 
@@ -28,7 +28,7 @@
             <div class="row mb-4 g-4">
                 <div class="col-md-4">
                     <div class="metric-card">
-                        <div class="metric-icon bg-info">
+                        <div class="metric-icon metric-icon-release">
                             <i class="bi bi-calendar3"></i>
                         </div>
                         <div class="metric-content">
@@ -39,7 +39,7 @@
                 </div>
                 <div class="col-md-4">
                     <div class="metric-card">
-                        <div class="metric-icon bg-primary">
+                        <div class="metric-icon metric-icon-department">
                             <i class="bi bi-building"></i>
                         </div>
                         <div class="metric-content">
@@ -50,7 +50,7 @@
                 </div>
                 <div class="col-md-4">
                     <div class="metric-card">
-                        <div class="metric-icon bg-warning">
+                        <div class="metric-icon metric-icon-status">
                             <i class="bi bi-hourglass-split"></i>
                         </div>
                         <div class="metric-content">
@@ -65,11 +65,11 @@
             <div class="mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h6 class="mb-0"><i class="bi bi-graph-up me-2"></i>Test Progress</h6>
-                    <span class="badge bg-primary">@Model.PercentagePassed.ToString("0.##")% Complete</span>
+                    <span class="badge text-bg-warning category-progress-badge">@Model.PercentagePassed.ToString("0.##")% Complete</span>
                 </div>
                 <div class="d-flex align-items-center gap-2">
                     <div class="progress flex-grow-1" style="height: 1.5rem;">
-                        <div class="progress-bar bg-gradient" role="progressbar" style="width:@Model.PercentagePassed%; background: #3b82f6 !important;" aria-valuenow="@Model.PercentagePassed" aria-valuemin="0" aria-valuemax="100">
+                        <div class="progress-bar bg-gradient" role="progressbar" style="width:@Model.PercentagePassed%;" aria-valuenow="@Model.PercentagePassed" aria-valuemin="0" aria-valuemax="100">
                         </div>
                     </div>
                     <span class="small text-muted fw-semibold">@Model.PercentagePassed.ToString("0.##")%</span>
@@ -114,9 +114,12 @@
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0"><i class="bi bi-list-check me-2"></i>Test Cases (@Model.Tests.Count)</h5>
-            <a href="@Url.RouteUrl("test-create", new { testCategoryId = Model.TestCategoryId })" class="btn btn-sm btn-success">
-                <i class="bi bi-plus-circle me-1"></i> Add Test
-            </a>
+            @if (User.IsInRole(TestPlanManager.Models.AppRoles.Administrator) || User.IsInRole(TestPlanManager.Models.AppRoles.TestManager))
+            {
+                <a href="@Url.RouteUrl("test-create", new { testCategoryId = Model.TestCategoryId })" class="btn btn-sm btn-success">
+                    <i class="bi bi-plus-circle me-1"></i> Add Test
+                </a>
+            }
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -133,8 +136,8 @@
                     <tbody>
                         @foreach(var t in Model.Tests)
                         {
-                            <tr onclick="window.location='@Url.RouteUrl("test-edit", new { id = t.TestId })'" style="cursor:pointer;" class="table-row-hover">
-                                <td><a class="link-primary fw-bold" href="@Url.RouteUrl("test-edit", new { id = t.TestId })">@($"TC-{t.TestId:D3}")</a></td>
+                            <tr data-href="@Url.RouteUrl("test-edit", new { id = t.TestId })" style="cursor:pointer;" class="table-row-hover">
+                                <td><a class="category-test-link fw-bold" href="@Url.RouteUrl("test-edit", new { id = t.TestId })">@($"TC-{t.TestId:D3}")</a></td>
                                 <td><span class="fw-500">@t.Name</span></td>
                                 <td><small class="text-muted">@Model.Department</small></td>
                                 <td><span class="badge @GetBadgeClass(t.ScopeStatus)">@t.ScopeStatus</span></td>
@@ -146,6 +149,19 @@
             </div>
         </div>
     </div>
+    <script nonce="@(Context.Items["CspNonce"])">
+        // Make test rows clickable. Ignore clicks on actual links so default behaviour remains.
+        (function(){
+            const rows = document.querySelectorAll('.table.table-hover.mb-0 tbody tr.table-row-hover[data-href]');
+            rows.forEach(r => {
+                r.addEventListener('click', function(e){
+                    if (e.target.closest('a') || e.target.closest('button')) return; // let links/buttons work
+                    const href = r.getAttribute('data-href');
+                    if (href) window.location = href;
+                });
+            });
+        })();
+    </script>
 </div>
 
 <style>
@@ -154,9 +170,9 @@
         align-items: center;
         gap: 1rem;
         padding: 1rem;
-        background: #f8fafc;
+        background: var(--color-bg-secondary);
         border-radius: 0.75rem;
-        border: 1px solid #e2e8f0;
+        border: 1px solid var(--color-border-subtle);
     }
 
     .metric-icon {
@@ -166,23 +182,24 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        color: white;
+        color: #000000;
         font-size: 1.5rem;
+        background: #FFF5D6;
     }
 
-    .metric-icon.bg-info {
-        background: #e0f2fe !important;
-        color: #3b82f6 !important;
+    .metric-icon-release {
+        background: #FFF5D6;
+        color: #000000;
     }
 
-    .metric-icon.bg-primary {
-        background: #e0f2fe !important;
-        color: #3b82f6 !important;
+    .metric-icon-department {
+        background: #F1F1F1;
+        color: var(--color-text-primary);
     }
 
-    .metric-icon.bg-warning {
-        background: #fef3c7 !important;
-        color: #f59e0b !important;
+    .metric-icon-status {
+        background: #F5EADF;
+        color: #6A503D;
     }
 
     .stat-box {
@@ -199,39 +216,39 @@
     }
 
     .stat-passed {
-        background: linear-gradient(135deg, #ecfdf5, #d1fae5);
-        border-left: 4px solid #10b981;
+        background: #EAF4EE;
+        border-left: 4px solid #264F36;
     }
 
     .stat-passed i {
-        color: #10b981;
+        color: #264F36;
     }
 
     .stat-failed {
-        background: linear-gradient(135deg, #fef2f2, #fee2e2);
-        border-left: 4px solid #ef4444;
+        background: #FBE8E9;
+        border-left: 4px solid #8F0005;
     }
 
     .stat-failed i {
-        color: #ef4444;
+        color: #8F0005;
     }
 
     .stat-blocked {
-        background: linear-gradient(135deg, #fffbeb, #fef3c7);
-        border-left: 4px solid #f59e0b;
+        background: #F5EADF;
+        border-left: 4px solid #6A503D;
     }
 
     .stat-blocked i {
-        color: #f59e0b;
+        color: #6A503D;
     }
 
     .stat-notstarted {
-        background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
-        border-left: 4px solid #6b7280;
+        background: #F1F1F1;
+        border-left: 4px solid #6E6E6E;
     }
 
     .stat-notstarted i {
-        color: #6b7280;
+        color: #6E6E6E;
     }
 
     .stat-number {
@@ -241,19 +258,34 @@
     }
 
     .stat-passed .stat-number {
-        color: #10b981;
+        color: #264F36;
+    }
+
+    .category-progress-badge {
+        background: var(--color-brand-gold) !important;
+        color: #000000 !important;
+    }
+
+    .category-test-link {
+        color: var(--color-text-primary) !important;
+        text-decoration: none;
+    }
+
+    .category-test-link:hover {
+        color: #000000 !important;
+        text-decoration: underline;
     }
 
     .stat-failed .stat-number {
-        color: #ef4444;
+        color: #8F0005;
     }
 
     .stat-blocked .stat-number {
-        color: #f59e0b;
+        color: #6A503D;
     }
 
     .stat-notstarted .stat-number {
-        color: #6b7280;
+        color: #6E6E6E;
     }
 
     .stat-label {

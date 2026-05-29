@@ -9,7 +9,6 @@
         : Url.Action("Index", "Home", new { sprintId = Model.SprintId });
     var breadcrumbs = new System.Collections.Generic.List<TestPlanManager.Models.BreadcrumbItem>
     {
-        new() { Label = "Templates", Url = Url.Action("Index", "TestPlanVersion") },
         new() { Label = $"{(includeTemplatesView ? "Template" : "Build")} {Model.BuildNr}", Url = buildUrl },
         new() { Label = "Create Category", IsCurrent = true }
     };
