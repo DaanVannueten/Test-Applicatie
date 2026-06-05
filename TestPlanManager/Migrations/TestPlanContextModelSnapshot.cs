@@ -259,6 +259,10 @@ namespace TestPlanManager.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Dependencies")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("MediaUrl")
                         .HasColumnType("TEXT");
 
@@ -297,6 +301,10 @@ namespace TestPlanManager.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Dependencies")
                         .IsRequired()
                         .HasColumnType("TEXT");
 

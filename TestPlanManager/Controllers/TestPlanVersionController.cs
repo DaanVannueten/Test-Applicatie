@@ -181,10 +181,11 @@ namespace TestPlanManager.Controllers
                         IsTemplateDerived = true,
                         Name = TestTitleSanitizer.Clean(sourceTest.Name),
                         Description = sourceTest.Description ?? string.Empty,
+                        Dependencies = sourceTest.Dependencies ?? string.Empty,
                         ScopeStatus = sourceTest.ScopeStatus,
                         ExecutionStatus = ExecutionStatus.NotRun,
                         Comments = string.Empty,
-                        MediaUrl = string.Empty,
+                        MediaUrl = sourceTest.MediaUrl,
                         Production = string.Empty
                     }).ToList()
                 };
@@ -309,6 +310,7 @@ namespace TestPlanManager.Controllers
                     {
                         Name = TestTitleSanitizer.Clean(sourceTest.Name),
                         Description = sourceTest.Description ?? string.Empty,
+                        Dependencies = sourceTest.Dependencies ?? string.Empty,
                         ScopeStatus = sourceTest.ScopeStatus,
                         ExecutionStatus = ExecutionStatus.NotRun,
                         Comments = string.Empty,

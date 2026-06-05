@@ -51,6 +51,9 @@
                             <textarea class="form-control" name="Description" rows="2" placeholder="Uitleg / steps" required></textarea>
                         </div>
                         <div class="mb-2">
+                            <textarea class="form-control" name="Dependencies" rows="2" placeholder="Dependencies / prerequisites"></textarea>
+                        </div>
+                        <div class="mb-2">
                             <input class="form-control" name="MediaUrl" placeholder="Screenshot URL (optional)" />
                         </div>
                         <div class="row g-2 mb-2">
@@ -92,6 +95,7 @@
                         <th style="width: 80px;">#</th>
                         <th>Title</th>
                         <th>Description</th>
+                        <th>Dependencies</th>
                         <th style="width: 110px;">Scope</th>
                         <th style="width: 120px;">Default</th>
                         <th style="width: 160px;">Media</th>
@@ -101,7 +105,7 @@
                 @if (!Model.TestCases.Any())
                 {
                     <tr>
-                        <td colspan="6" class="text-center text-muted py-4">No testcases yet for this template.</td>
+                        <td colspan="7" class="text-center text-muted py-4">No testcases yet for this template.</td>
                     </tr>
                 }
                 else
@@ -112,6 +116,7 @@
                             <td>@testCase.Sequence</td>
                             <td>@testCase.Name</td>
                             <td>@testCase.Description</td>
+                            <td>@testCase.Dependencies</td>
                             <td>@testCase.ScopeStatus</td>
                             <td>@testCase.DefaultExecutionStatus</td>
                             <td>

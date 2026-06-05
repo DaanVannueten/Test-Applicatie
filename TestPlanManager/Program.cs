@@ -67,7 +67,9 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.LoginPath = "/Account/Login";                        // Redirect to login page when authentication fails
     options.AccessDeniedPath = "/Account/AccessDenied";          // Redirect to this page when user lacks authorization
     options.Cookie.HttpOnly = true;                              // Cookie is only accessible via HTTP (prevents JavaScript access)
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;     // Cookie is only sent over HTTPS (secure protocol)
+    // Keep the auth cookie usable on servers that terminate TLS elsewhere or are still running over HTTP.
+    // A strict HTTPS-only cookie can look like a successful login, then immediately bounce back to /Account/Login.
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
     options.SlidingExpiration = true;                            // Reset expiration time on each request
     options.ExpireTimeSpan = TimeSpan.FromHours(8);              // Session expires after 8 hours of inactivity
 });

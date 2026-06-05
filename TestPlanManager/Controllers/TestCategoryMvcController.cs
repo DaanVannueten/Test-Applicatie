@@ -116,7 +116,7 @@ namespace TestPlanManager.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> EditTest(int TestId, int TestCategoryId, string Name, ScopeStatus ScopeStatus, ExecutionStatus ExecutionStatus, string Production, string Comments, string MediaUrl, bool removeMedia = false, IFormFile? mediaFile = null)
+        public async Task<IActionResult> EditTest(int TestId, int TestCategoryId, string Name, ScopeStatus ScopeStatus, ExecutionStatus ExecutionStatus, string Description, string Dependencies, string Production, string Comments, string MediaUrl, bool removeMedia = false, IFormFile? mediaFile = null)
         {
             var test = await _ctx.Tests.FindAsync(TestId);
             if (test == null) return NotFound();
@@ -185,6 +185,8 @@ namespace TestPlanManager.Controllers
                 // Managers/Admins may edit all fields
                 test.Name = Name;
                 test.ScopeStatus = ScopeStatus;
+                test.Description = Description;
+                test.Dependencies = Dependencies ?? string.Empty;
                 TestExecutionHelper.ApplyExecution(
                     test,
                     ExecutionStatus,
@@ -225,6 +227,7 @@ namespace TestPlanManager.Controllers
 
             model.ExecutionStatus = ExecutionStatus.NotRun;
             model.ScopeStatus = model.ScopeStatus == 0 ? ScopeStatus.InScope : model.ScopeStatus;
+            model.Dependencies = model.Dependencies ?? "";
             model.Production = model.Production ?? "";
             model.Comments = model.Comments ?? "";
 

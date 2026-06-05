@@ -59,6 +59,13 @@
                             <span asp-validation-for="Description" class="text-danger d-block mt-1"></span>
                         </div>
 
+                        <div class="mb-4">
+                            <label asp-for="Dependencies" class="form-label">
+                                <i class="bi bi-link-45deg me-2 text-primary"></i>Dependencies
+                            </label>
+                            <textarea asp-for="Dependencies" class="form-control" rows="3" placeholder="Optional dependencies or prerequisites"></textarea>
+                        </div>
+
                         <div class="row mb-4">
                             <div class="col-md-6">
                                 <label asp-for="ScopeStatus" class="form-label"><i class="bi bi-bullseye me-2 text-primary"></i>Scope Status</label>

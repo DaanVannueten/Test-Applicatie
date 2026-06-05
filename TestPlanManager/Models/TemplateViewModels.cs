@@ -48,6 +48,8 @@ public class AddTemplateTestCaseInputModel
     [Required]
     public string Description { get; set; } = string.Empty;
 
+    public string Dependencies { get; set; } = string.Empty;
+
     public string? MediaUrl { get; set; }
 
     public ScopeStatus ScopeStatus { get; set; } = ScopeStatus.InScope;

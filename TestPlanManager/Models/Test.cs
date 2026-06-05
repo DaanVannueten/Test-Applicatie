@@ -14,6 +14,7 @@ namespace TestPlanManager.Models
     /// - ScopeStatus: Whether test is in scope or out of scope for this sprint
     /// - ExecutionStatus: Passed/Failed/Blocked/NotRun
     /// - Description: Detailed test description
+    /// - Dependencies: Related prerequisite or dependency notes
     /// - Comments: Execution notes/observations
     /// - MediaUrl: URL to screenshot or video evidence
     /// - Production: Production environment version/build info
@@ -70,6 +71,11 @@ namespace TestPlanManager.Models
         /// May include expected results and preconditions
         /// </summary>
         public string Description { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Related dependency notes or prerequisites
+        /// </summary>
+        public string Dependencies { get; set; } = string.Empty;
 
         /// <summary>
         /// Tester's comments during execution
