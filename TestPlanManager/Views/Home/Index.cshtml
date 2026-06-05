@@ -210,6 +210,14 @@
 
 <div class="table-responsive">
     <table class="table dashboard-table">
+        <colgroup>
+            <col class="feature-col" />
+            <col class="owner-col" />
+            <col class="progress-col" />
+            <col class="results-col" />
+            <col class="status-col" />
+            <col class="actions-col" />
+        </colgroup>
         <thead>
             <tr>
                 <th>Feature Name</th>
@@ -235,12 +243,12 @@
             @foreach(var cat in Model.Categories)
             {
                     <tr class="status-row" data-status="@cat.Status" data-department="@cat.Department" data-progress="@cat.PercentagePassed">
-                    <td>
-                        <div class="feature-title">@cat.Name</div>
+                    <td class="feature-cell">
+                        <div class="feature-title" title="@cat.Name">@cat.Name</div>
                     </td>
                     <!-- Release cell removed -->
                     <td class="owner-cell">
-                        <span class="owner-label owner-@cat.Department.ToString().ToLowerInvariant()">@cat.Department Team</span>
+                        <span class="owner-label owner-@cat.Department.ToString().ToLowerInvariant()" title="@cat.Department Team">@cat.Department Team</span>
                     </td>
                     <td class="progress-cell">
                         <div class="d-flex align-items-center gap-3 progress-wrap">

@@ -212,6 +212,52 @@ dotnet run --no-launch-profile -- --reset-password <email> <newPassword>
 
 Deze commando's zijn bedoeld voor lokale recovery en troubleshooting, niet voor productiegebruik.
 
+## Deployment naar IIS
+
+Volg deze stappen wanneer je de publicatiemap naar een IIS-server kopieert. Deze instructies zijn bedoeld voor veilige, niet-destructieve updates van een bestaande site die `App_Data/TestPlan.db` gebruikt.
+
+1. Backup eerst de database (altijd):
+
+```powershell
+Copy-Item "C:\inetpub\wwwroot\YourSite\App_Data\TestPlan.db" "C:\backups\TestPlan.db.bak"
+```
+
+2. Stop de App Pool of site voordat je bestanden overschrijft:
+
+```powershell
+Import-Module WebAdministration
+Stop-WebAppPool -Name "YourAppPool"
+```
+
+3. Kopieer de inhoud van je lokale `publish`-map naar de sitemap, maar overschrijf NIET `App_Data` of `wwwroot/uploads` op de server. Gebruik `robocopy` en sluit `App_Data` uit:
+
+```powershell
+robocopy C:\path\to\local\publish C:\inetpub\wwwroot\YourSite /MIR /XD App_Data wwwroot\uploads
+```
+
+Opmerking: `/MIR` mirror; gebruik het alleen als je zeker weet dat de bron de gewenste set bestanden bevat. De `/XD` parameter sluit `App_Data` en uploads uit.
+
+4. Zorg dat de IIS App Pool identity schrijfrechten heeft op `App_Data` en `wwwroot/uploads/test-media`:
+
+```powershell
+$pool = "IIS AppPool\\YourAppPool"
+icacls "C:\inetpub\wwwroot\YourSite\App_Data" /grant "$pool:(OI)(CI)RW"
+icacls "C:\inetpub\wwwroot\YourSite\wwwroot\uploads\test-media" /grant "$pool:(OI)(CI)RW"
+```
+
+5. Start de App Pool en controleer de logs. De app voert bij startup automatisch de EF Core-migrations uit (`ctx.Database.MigrateAsync()` in `Program.cs`). Let op migratie-logs zoals "Applying migration '...AddDependencies...'". Als de App Pool geen schrijfrechten heeft, zullen migraties falen.
+
+6. Rollback: als iets misgaat, stop de App Pool, restore de backup van `TestPlan.db`, en start opnieuw.
+
+Extra opties
+- Voor zero-downtime: kopieer naar een nieuwe map en wissel de site naar die map (makkelijk rollback).
+- Je kunt ook een PowerShell-deployscript gebruiken om backup → stop pool → copy → set-perms → start pool te automatiseren.
+
+Belangrijke aandachtspunten
+- Publicatie zelf verandert de database niet op disk; migrations worden uitgevoerd wanneer de nieuwe build opstart op de server.
+- Publiceer NIET een lege of andere `App_Data/TestPlan.db` vanuit je build — dat overschrijft productiedata.
+- Maak altijd een backup vóór deploy.
+
 ## 11. Presentatiehulp (spreekpunten)
 
 Gebruik onderstaande structuur om vlot te presenteren:

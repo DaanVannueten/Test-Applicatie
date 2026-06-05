@@ -111,15 +111,59 @@ textarea:focus-visible,
 
 .app-main {
   padding-bottom: var(--space-lg);
+  table-layout: fixed;
+  width: 100%;
 }
 
 .app-footer {
   background: var(--color-bg-secondary);
   border-top: 1px solid var(--color-border-subtle) !important;
   color: var(--color-text-muted) !important;
+.dashboard-table th,
+.dashboard-table td {
+  vertical-align: middle;
+}
+
+.dashboard-table tbody tr {
+  height: 5rem;
+}
+
+.dashboard-table td {
+  overflow: hidden;
+}
+
+.feature-col {
+  width: 28%;
+}
+
+.owner-col {
+  width: 12%;
+}
+
+.progress-col {
+  width: 20%;
+}
+
+.results-col {
+  width: 24%;
+}
+
+.status-col {
+  width: 10%;
+}
+
+.actions-col {
+  width: 16%;
+}
+
   padding: var(--space-md) 0;
 }
 
+  display: block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 /* ==================== NAVIGATION ==================== */
 .app-navbar {
   background: var(--color-bg-secondary);
@@ -128,6 +172,22 @@ textarea:focus-visible,
   padding-top: 0.875rem;
   padding-bottom: 0.875rem;
 }
+
+.feature-cell {
+  min-width: 0;
+}
+
+.progress-cell,
+.results-cell,
+.status-cell,
+.actions-cell {
+  white-space: nowrap;
+}
+
+.progress-cell .progress-wrap {
+  min-width: 0;
+}
+
 
 .app-brand {
   color: #000000 !important;
@@ -141,12 +201,25 @@ textarea:focus-visible,
   height: 56px;
   width: auto;
   display: block;
+  max-width: 100%;
 }
 
 .navbar-nav {
   gap: 0.35rem;
 }
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
+
+.details-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+  min-width: 8.25rem;
+}
 .navbar-nav .nav-link {
   color: var(--color-text-primary) !important;
   border-radius: var(--radius-sm);
